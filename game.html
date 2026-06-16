@@ -425,6 +425,22 @@ function applyClassRelEffects(char){
     else if(cr<-20){if(cr>=-50){char["精神状态"]=clampStat(char["精神状态"]-2,"精神状态");char["学习状态"]=clampStat(char["学习状态"]-2,"学习状态");m="班级中的冷遇让你的状态有所下滑。"}else if(cr>=-80){char["精神状态"]=clampStat(char["精神状态"]-3,"精神状态");char["学习状态"]=clampStat(char["学习状态"]-3,"学习状态");m="被孤立的感受让你心力交瘁……"}else{char["精神状态"]=clampStat(char["精神状态"]-5,"精神状态");char["学习状态"]=clampStat(char["学习状态"]-5,"学习状态");m="众叛亲离的处境让你的精神状态急剧恶化！"}}
     return m;
 }
+function applyHardSpiritPenalty(char){
+    // 困难模式：精神<45时，随机扣2个非精神状态各5点，按数值加权
+    if(gameDifficulty!=="hard"||char["精神状态"]>=45)return;
+    const targets=STAT_NAMES.filter(s=>s!=="精神状态").map(s=>({name:s,val:char[s]}));
+    targets.sort((a,b)=>b.val-a.val);
+    const weights=[0.50,0.20,0.15,0.10,0.05];
+    const picked=[];
+    for(let i=0;i<2;i++){
+        let r=Math.random(),cum=0;
+        for(let j=0;j<targets.length;j++){
+            if(picked.some(p=>p.name===targets[j].name))continue;
+            cum+=weights[Math.min(j,weights.length-1)];
+            if(r<=cum||j===targets.length-1){char[targets[j].name]=clampStat(char[targets[j].name]-5,targets[j].name);picked.push(targets[j]);break}
+        }
+    }
+}
 function applyGradeDecay(char,mapCount,diff){
     const hard=diff==="hard";
     if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?4:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?5:0),"精神状态")}
@@ -575,7 +591,8 @@ function enterCell(x,y){
     else if(cell.type==="奇遇"){
         typeLabel="奇遇";
         const pool=[...ENCOUNTER_EVENTS];shuffle(pool);
-        options=[pool[0],{label:"无所事事",desc:"发发呆，什么也不做，让时间慢慢流过。",type:"neutral",narrative:"你靠在窗边，看着云朵慢慢飘过。有时候什么都不做，也是一种奢侈。人生不需要时时刻刻都在奔跑。",成绩水平:0,学习状态:0,体能水平:0,精神状态:1,爱情进展:0,班级关系:0,_no_fluctuate:true}];
+        options=[pool[0]];
+        if(Math.random()<0.5)options.push({label:"无所事事",desc:"发发呆，什么也不做，让时间慢慢流过。",type:"neutral",narrative:"你靠在窗边，看着云朵慢慢飘过。有时候什么都不做，也是一种奢侈。人生不需要时时刻刻都在奔跑。",成绩水平:0,学习状态:0,体能水平:0,精神状态:1,爱情进展:0,班级关系:0,_no_fluctuate:true});
     }
     else return;
     // 【Bug修复】进入节点瞬间固化所有选项的随机波动值
@@ -641,7 +658,8 @@ function confirmChoice(){
         return;
     }
     applyEffects(gameState.character,adjEff);
-    applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);
+    applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);applyHardSpiritPenalty(gameState.character);
+    applyHardSpiritPenalty(gameState.character);
     const classMsg=applyClassRelEffects(gameState.character);
     if(ctype==="期末备考"){gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;if(classMsg)gameState.message+="\n"+classMsg;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;checkProgressFull(gameState);render();return}
     // 非表白非奇遇：弹出叙事弹窗
@@ -675,7 +693,7 @@ function confirmEncounter(){
     const{chosen,effects,cell,px,py,ctype}=pendingEncounter;
     pendingEncounter=null;
     applyEffects(gameState.character,effects);
-    applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);
+    applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);applyHardSpiritPenalty(gameState.character);
     const classMsg=applyClassRelEffects(gameState.character);
     gameState.message=`🎲 奇遇 —— ${chosen.narrative||chosen.desc}`;
     if(classMsg)gameState.message+="\n"+classMsg;
