@@ -1,0 +1,802 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高中生涯 - 无悔青春</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#e0e0e0}
+#app{display:flex;gap:22px;padding:18px;align-items:flex-start}
+#grid-wrapper{position:relative;background:rgba(255,255,255,0.05);padding:10px;border-radius:16px;border:1px solid rgba(255,255,255,0.1)}
+#grid{display:grid;gap:5px}
+#conn-svg{position:absolute;top:10px;left:10px;pointer-events:none;z-index:1}
+.cell{border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;border:2px solid transparent;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.4);z-index:2}
+.cell:hover:not(.fog):not(.blocked){transform:scale(1.10);border-color:#fff;box-shadow:0 0 14px rgba(255,255,255,0.35);z-index:3}
+.cell.current{border:3px solid #fff!important;box-shadow:0 0 16px rgba(255,215,0,0.55);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,0.4)}50%{box-shadow:0 0 20px rgba(255,215,0,0.8)}}
+.cell.entered:not(.reenterable){filter:brightness(0.6)}.cell.entered.reenterable{filter:brightness(0.8)}
+.cell.blocked{filter:brightness(0.3) saturate(0.15);cursor:not-allowed}
+.cell.blocked::after{content:"🚫";position:absolute;font-size:13px;pointer-events:none}
+.cell.fog{background:rgba(160,170,190,0.18);color:#7a7a9a;cursor:default;font-size:20px;border:1px dashed rgba(255,255,255,0.12)}
+.cell .icon{font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}.cell .label{font-size:10px;margin-top:2px;opacity:0.85}
+#info-panel{width:290px;display:flex;flex-direction:column;gap:10px}
+.panel-box{background:rgba(255,255,255,0.06);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)}
+.panel-box h4{font-size:12px;color:#aaa;margin-bottom:6px}
+.countdown-bar{width:100%;height:16px;background:rgba(255,255,255,0.1);border-radius:8px;overflow:hidden}
+.countdown-fill{height:100%;width:100%;border-radius:8px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1)}
+.countdown-fill.flash{animation:cdFlash 0.6s ease-out}
+@keyframes cdFlash{0%{filter:brightness(2.5);box-shadow:0 0 20px rgba(255,255,255,0.6)}100%{filter:brightness(1);box-shadow:0 0 0px}}
+.countdown-text-pop{display:inline-block;animation:popIn 0.4s ease-out}
+@keyframes popIn{0%{transform:scale(1.8);color:#FFD700}100%{transform:scale(1)}}
+#message-box{min-height:50px;max-height:160px;font-size:12px;line-height:1.6;color:#ccc;white-space:pre-line;overflow-y:auto}
+.stat-row{display:flex;justify-content:space-between;align-items:center;margin:4px 0;font-size:11px}
+.stat-row .stat-name{width:80px;color:#aaa;font-size:10px}
+.stat-bar-bg{flex:1;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin:0 6px}
+.stat-bar-fill{height:100%;border-radius:4px;transition:width 0.4s}
+.stat-row .stat-val{width:22px;text-align:right;font-size:10px;color:#ccc}
+.critical-warn{color:#e74c3c!important;font-weight:bold}
+button{padding:10px;background:#4A90E2;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;transition:background 0.2s}
+button:hover{background:#5AA0F2}
+button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:rgba(255,255,255,0.25)}
+#modal-overlay,#love-popup-overlay,#ending-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;justify-content:center;align-items:center}
+#modal-overlay,#love-popup-overlay{background:rgba(0,0,0,0.7)}#ending-overlay{background:rgba(0,0,0,0.85);z-index:200}
+#modal,#love-popup{background:#1e1e3a;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:420px;width:92%;box-shadow:0 16px 48px rgba(0,0,0,0.5);max-height:85vh;overflow-y:auto}
+#love-popup{border:2px solid #FF6B9D;box-shadow:0 0 40px rgba(255,107,157,0.3);text-align:center}
+#modal h3,#love-popup h3{text-align:center;margin-bottom:4px;font-size:17px}#love-popup h3{color:#FF6B9D}
+#modal .subtitle{text-align:center;color:#888;font-size:11px;margin-bottom:8px}
+#modal .node-desc{background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;font-size:12px;color:#bbb;line-height:1.5;margin-bottom:10px;border-left:3px solid rgba(255,255,255,0.15)}
+.option-btn{display:block;width:100%;text-align:left;padding:10px 14px;margin:5px 0;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.1);border-radius:10px;color:#ddd;font-size:13px;cursor:pointer;transition:all 0.2s}
+.option-btn:hover{background:rgba(74,144,226,0.25);border-color:#4A90E2}
+.option-btn.selected{background:rgba(74,144,226,0.35);border-color:#4A90E2}
+.option-btn .opt-label{font-weight:bold}.option-btn .opt-desc{font-size:10px;color:#999;margin-top:2px}
+.option-btn .opt-effects{margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.1)}
+#effect-preview{display:none;background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin:8px 0;border:1px solid rgba(255,255,255,0.1)}
+#effect-preview .eff-line{display:flex;align-items:center;margin:3px 0;font-size:11px}
+#effect-preview .eff-name{width:70px;color:#aaa}.eff-up{color:#2ecc71}.eff-down{color:#e74c3c}.eff-neutral{color:#999}
+#confirm-row{display:none;gap:8px;margin-top:8px}#confirm-row button{flex:1}
+#ending-box{background:#1a1a2e;border:2px solid #FFD700;border-radius:20px;padding:28px;max-width:500px;width:90%;text-align:center;box-shadow:0 0 60px rgba(255,215,0,0.3);max-height:90vh;overflow-y:auto}
+#ending-box.bad{border-color:#e74c3c;box-shadow:0 0 60px rgba(231,76,60,0.4)}
+#ending-box h2{font-size:22px;margin-bottom:14px}
+#ending-box .ending-text{font-size:14px;line-height:1.8;white-space:pre-line;color:#ddd;margin-bottom:18px}
+@media(max-width:768px){
+    body{align-items:flex-start;padding:0}
+    #app{flex-direction:column;gap:8px;padding:6px;width:100%}
+    #grid-wrapper{width:100%;display:flex;justify-content:center}
+    #info-panel{width:100%}
+    .stat-row .stat-name{width:70px}
+    #start-screen>div{padding:20px!important}
+    #top-row{display:flex;gap:8px}
+    #top-row .msg-box{flex:1;order:1}
+    #top-row .countdown-box{flex:1;order:2}
+    #stats-box .stat-row{display:inline-block;width:48%;vertical-align:top;margin:2px 1%}
+    #stats-box .stat-row .stat-name{width:65px}
+}
+</style>
+</head>
+<body>
+<div id="start-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);z-index:300;display:flex;justify-content:center;align-items:center;">
+<div style="text-align:center;max-width:440px;padding:40px;">
+<h1 style="font-size:32px;margin-bottom:8px;">🎓 高中生涯</h1>
+<p style="color:#FFD700;font-size:18px;margin-bottom:6px;">—— 无悔青春 ——</p>
+<p style="color:#aaa;font-size:13px;line-height:1.7;margin-bottom:20px;">你即将踏入重点高中的校门。<br>在这里，你将经历学习、交友、恋爱、追梦……<br>每一个选择，都会影响你的青春轨迹。</p>
+<div style="margin-bottom:12px;">
+<label style="color:#aaa;font-size:12px;">你的名字</label><br>
+<div id="name-display" style="font-size:22px;color:#FFD700;margin:6px 0;font-weight:bold;">---</div>
+<button onclick="rerollName()" id="reroll-btn" style="background:rgba(255,255,255,0.1);color:#ccc;padding:6px 16px;font-size:12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);">🎲 换一个 (<span id="reroll-count">3</span>)</button>
+</div>
+<div style="margin-bottom:20px;">
+<label style="color:#aaa;font-size:12px;">你的性别</label><br>
+<div id="gender-select" style="display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);margin-top:4px;">
+<div id="gender-male" onclick="selectGender('male')" style="padding:10px 28px;cursor:pointer;background:rgba(74,144,226,0.35);color:#fff;font-size:14px;transition:all 0.3s;">♂ 男生</div>
+<div id="gender-female" onclick="selectGender('female')" style="padding:10px 28px;cursor:pointer;background:rgba(255,255,255,0.05);color:#aaa;font-size:14px;transition:all 0.3s;">♀ 女生</div>
+</div>
+</div>
+<button onclick="startGame()" style="background:linear-gradient(135deg,#4A90E2,#7ED321);color:#fff;padding:12px 40px;font-size:16px;border-radius:12px;border:none;cursor:pointer;margin-top:6px;">✨ 开始游戏</button>
+<div style="margin-top:16px;">
+<span style="color:#888;font-size:11px;">难度：</span>
+<select id="difficulty-select" onchange="gameDifficulty=this.value;updateDiffDesc()" style="background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;font-size:11px;">
+<option value="normal">😊 普通</option>
+<option value="hard">💀 困难</option>
+</select>
+<div id="diff-desc" style="font-size:10px;color:#888;margin-top:3px;">标准规则，无额外惩罚</div>
+</div>
+</div>
+</div>
+
+<div id="app" style="display:none;">
+<div id="grid-wrapper"><svg id="conn-svg"></svg><div id="grid"></div></div>
+<div id="info-panel">
+<div id="top-row">
+<div class="panel-box countdown-box">
+<h4 id="semester-title">📅 加载中...</h4>
+<button onclick="showGuide()" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,0.08);color:#888;border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;margin-left:4px;">❓ 新手说明</button>
+<div class="countdown-bar"><div class="countdown-fill" id="countdown-fill"></div></div>
+<small><span style="color:#FFD700;font-weight:bold;" id="countdown-num">12</span> <span style="color:#888;">步后进入考试</span></small>
+</div>
+<div class="panel-box msg-box" id="message-box">加载中...</div>
+</div>
+<div class="panel-box" id="stats-box">
+<h4>📊 角色状态 <span id="critical-indicator" style="color:#e74c3c;display:none;">⚠️危急</span></h4>
+<div id="stats-container"></div>
+</div>
+<div class="panel-box" style="text-align:center;">
+<button onclick="quitSchool()" style="background:#c0392b;width:100%;">🚪 离开学校</button>
+</div>
+
+</div>
+
+<div id="modal-overlay"><div id="modal">
+<h3 id="modal-title"></h3><div class="subtitle" id="modal-subtitle"></div>
+<div class="node-desc" id="node-desc"></div>
+<div id="modal-options"></div>
+<div id="effect-preview"></div>
+<div id="confirm-row">
+<button onclick="confirmChoice()">✅ 确认选择</button>
+<button class="cancel" onclick="cancelPreview()">↩ 重新选择</button>
+</div>
+</div></div>
+
+<div id="love-popup-overlay"><div id="love-popup">
+<h3>💔 爱情终结</h3><p id="love-popup-msg" style="color:#ddd;font-size:14px;line-height:1.6;margin:12px 0;"></p>
+<button onclick="closeLovePopup()" style="background:#FF6B9D;">我知道了</button>
+</div></div>
+
+<div id="narrative-popup-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:140;justify-content:center;align-items:center;">
+<div style="background:#1e1e3a;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;max-width:420px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.5);text-align:center;">
+<p id="narrative-text" style="color:#ddd;font-size:14px;line-height:1.8;white-space:pre-line;margin-bottom:16px;"></p>
+<button onclick="closeNarrativePopup()" style="width:100%;">继续</button>
+</div></div>
+
+<div id="encounter-popup-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:150;justify-content:center;align-items:center;">
+<div style="background:#1e1e3a;border:2px solid #9B59B6;border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 0 40px rgba(155,89,182,0.3);text-align:center;">
+<h3 style="color:#9B59B6;margin-bottom:10px;">🎲 奇遇</h3>
+<p id="encounter-narrative" style="color:#ddd;font-size:13px;line-height:1.7;margin-bottom:14px;white-space:pre-line;"></p>
+<div id="encounter-effects" style="margin-bottom:14px;"></div>
+<button onclick="confirmEncounter()" style="background:#9B59B6;">✅ 确认</button>
+</div></div>
+
+</div></div>
+
+<div id="guide-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:250;justify-content:center;align-items:center;">
+<div style="background:#1e1e3a;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;max-width:460px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,0.5);">
+<h3 style="text-align:center;margin-bottom:12px;">📖 新手说明</h3>
+<div style="font-size:12px;color:#ccc;line-height:1.7;">
+<p><b>🎮 基本玩法：</b>点击地图上已点亮的格子进行探索。每次选择会影响角色状态。倒计时归零后进入期末考试。</p>
+<p><b>📊 状态值：</b>成绩水平(上限150)、爱情进展、体能水平、精神状态、学习状态(上限100)、班级关系(-100~100)。高二起成绩每步-1，高三起-2。</p>
+<p><b>🚪 离开学校：</b>随时可点击红色按钮退学，触发特殊结局。</p>
+<p><b>💀 坏结局：</b>任一状态(除爱情)触底后，下一步若未提升，立即触发坏结局。</p>
+<p><b>🗺️ 节点类型：</b>学习/课余/测验/奇遇/恋爱/追梦/研学/小长假(高一上/高二上/高三上各一次，需成绩达标)。</p>
+<p><b>🏖️ 小长假：</b>进入3×3迷你地图，3步自由探索，只有课余/学习/恋爱节点。</p>
+<p><b>💕 恋爱：</b>单身时可选表白(有成功率)或守护；成功后进入约会模式。</p>
+<p><b>🎲 奇遇：</b>随机事件，正面/负面/中性，另可选"无所事事"跳过。</p>
+<p><b>🎓 高考：</b>高三下学期进度满后触发，综合所有状态判定最终结局。</p>
+<p style="color:#888;margin-top:8px;">✨ 你的每一个选择，都会影响青春的方向。享受这段旅程吧！</p>
+</div>
+<button onclick="document.getElementById('guide-overlay').style.display='none'" style="width:100%;margin-top:12px;">知道了</button>
+</div></div>
+
+<div id="ending-overlay"><div id="ending-box">
+<h2 id="ending-title"></h2><div class="ending-text" id="ending-text"></div>
+</div></div>
+
+<script>
+// ==================== 工具函数 ====================
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=randInt(0,i);[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
+function fluctuate(v){if(v===0)return 0;const sign=v>0?1:-1;const abs=Math.abs(v);return sign*Math.max(0,abs+randInt(-2,2))}
+
+// ==================== 常量配置 ====================
+const TOTAL_MAPS=6;
+const GRID_SIZE_MAP={1:5,2:5,3:7,4:7,5:7,6:9};
+const PROGRESS_MAX_MAP={1:10,2:12,3:14,4:16,5:18,6:20};
+const SEMESTER_NAMES={1:"高一年级 上学期",2:"高一年级 下学期",3:"高二年级 上学期",4:"高二年级 下学期",5:"高三年级 上学期",6:"高三年级 下学期"};
+const STAT_MAX=100,STAT_MIN=0,CLASS_REL_MIN=-100;
+const GRADE_SCORE_MAX=150;
+const REENTERABLE_TYPES=new Set(["恋爱","追梦"]);
+const BLOCKABLE_TYPES=new Set(["学习","课余","测验","研学","奇遇"]);
+const STAT_NAMES=["成绩水平","爱情进展","体能水平","精神状态","学习状态","班级关系"];
+const STAT_EMOJI={成绩水平:"📖",爱情进展:"💕",体能水平:"💪",精神状态:"😊",学习状态:"📝",班级关系:"👥"};
+const STAT_FULL={成绩水平:"成绩水平",爱情进展:"爱情进展",体能水平:"体能水平",精神状态:"精神状态",学习状态:"学习状态",班级关系:"班级关系"};
+const CELL_ICONS={入学:"🎓",学习:"📚",课余:"⚽",测验:"📝",恋爱:"💕",追梦:"✨",研学:"🔬",奇遇:"🎲",小长假:"🏖️",放假:"🌴","期末备考":"📚"};
+const CELL_COLORS={入学:"#FFD700",学习:"#4A90E2",课余:"#F5A623",测验:"#E74C3C",恋爱:"#FF6B9D",追梦:"#9013FE",研学:"#1ABC9C",奇遇:"#9B59B6",小长假:"#E67E22",放假:"#2ECC71","期末备考":"#E67E22"};
+const STAT_COLORS={成绩水平:"#4A90E2",爱情进展:"#FF6B9D",体能水平:"#F5A623",精神状态:"#7ED321",学习状态:"#9013FE",班级关系:"#1ABC9C"};
+const CELL_SIZE=54,CELL_GAP=5;
+function getCellSize(){return window.innerWidth<500?Math.floor((window.innerWidth-40)/Math.max(gameState?.grid_size||5,5))-5:54}
+
+const CELL_TYPE_CONFIG={入学:{icon:"🎓",color:"#FFD700"},学习:{icon:"📚",color:"#4A90E2"},课余:{icon:"⚽",color:"#F5A623"},测验:{icon:"📝",color:"#E74C3C"},恋爱:{icon:"💕",color:"#FF6B9D"},追梦:{icon:"✨",color:"#9013FE"},研学:{icon:"🔬",color:"#1ABC9C"},奇遇:{icon:"🎲",color:"#9B59B6"},小长假:{icon:"🏖️",color:"#E67E22"},放假:{icon:"🌴",color:"#2ECC71"},"期末备考":{icon:"📚",color:"#E67E22"}};
+
+const NODE_DESCRIPTIONS={
+    "入学":"崭新的校园，崭新的面孔。你站在校门口深吸一口气——属于你的高中时代，正式开始了。",
+    "学习":"教室里弥漫着书本和粉笔的味道。黑板上密密麻麻的公式仿佛在向你招手。",
+    "课余":"下课铃响了，走廊里瞬间热闹起来。难得的自由时光，你想做些什么？",
+    "测验":"老师抱着一沓试卷走进来——突击测验！教室里响起一片哀嚎和翻书声。",
+    "恋爱":"走廊拐角处，Ta 的身影一闪而过。你的心跳漏了一拍，手心微微出汗。",
+    "追梦":"夜深人静，你望着窗外的星空。关于未来，你有太多的想象和憧憬。",
+    "研学":"一次走出校园的机会！实验室、博物馆、或是田野调查——知识不只在课本里。",
+    "奇遇":"生活中总有意外的小插曲。有时候是惊喜，有时候是惊吓，但都是青春的一部分。",
+    "小长假":"期待已久的假期终于来了！是时候好好放松一下了。",
+    "放假":"阳光、沙滩、自由的气息扑面而来。假期的每一天都值得珍惜。",
+};
+
+const LEARNING_OPTIONS=[
+    {label:"轻松学习",desc:"按部就班，保持自己的节奏就好。",成绩水平:2,精神状态:2,_narrative:"你翻开课本，按计划推进。不紧不慢的节奏让你感到踏实，知识像溪水一样自然流入脑海。"},
+    {label:"适度用功",desc:"多花些时间，把基础打扎实。",成绩水平:4,学习状态:3,体能水平:-2,_narrative:"你在图书馆坐了一个下午，笔记本写满了密密麻麻的要点。回家的路上，虽然身体疲惫，但心里很充实。"},
+    {label:"拼命苦读",desc:"挑灯夜战，卷到飞起！",成绩水平:5,学习状态:5,精神状态:-4,_narrative:"凌晨两点，台灯还亮着。你揉了揉酸痛的眼睛，喝掉最后一口咖啡。卷王的路上没有休息，但你真的撑得住吗？"},
+];
+const EXTRACURRICULAR_POOL=[
+    {label:"和同学打游戏",desc:"游戏世界里并肩作战。",精神状态:5,成绩水平:-3,_narrative:"你们在网吧酣战了一个下午，虽然被班主任抓到了一次，但那种并肩作战的快乐让人难忘。"},
+    {label:"和同学打球",desc:"汗水挥洒，球场青春飞扬。",体能水平:5,精神状态:3,_narrative:"夕阳下的球场，球鞋摩擦地面的声音，队友的呐喊——这就是青春最热血的注脚。"},
+    {label:"听听音乐",desc:"戴上耳机，世界安静了。",精神状态:5,学习状态:2,_narrative:"你靠在窗边，耳机里流淌着喜欢的旋律。窗外的喧嚣与你无关，这一刻只属于自己。"},
+    {label:"自己玩游戏",desc:"一个人放松也不错。",精神状态:4,成绩水平:-3,_narrative:"你在宿舍打了一下午游戏，虽然有点愧疚没学习，但紧绷的神经确实松弛了不少。"},
+];
+const EXTRACURRICULAR_FIXED=[
+    {label:"和同学社交",desc:"你和新朋友聊得很投机。",爱情进展:2,班级关系:4,_narrative:"你们从课堂聊到梦想，从食堂聊到未来。笑声在走廊里回荡，这样的友谊会一直记得吧。"},
+    {label:"多做几道习题",desc:"笨鸟先飞，多练多会。",成绩水平:3,学习状态:3,_narrative:"你咬着笔杆，解完最后一道大题。虽然辛苦，但那种攻克难题的成就感无与伦比。"},
+];
+function getExtracurricularOptions(){
+    const pool=[...EXTRACURRICULAR_POOL];shuffle(pool);
+    return[...EXTRACURRICULAR_FIXED,...pool.slice(0,2)];
+}
+const TEST_OPTIONS=[
+    {label:"认真答题",desc:"沉着冷静，仔细审题。",成绩水平:1,学习状态:3,_narrative:"试卷发下来的那一刻，你深吸一口气。一道题一道题地攻克，笔尖在纸上沙沙作响。交卷时，你觉得自己发挥得还不错。"},
+    {label:"全力以赴",desc:"拼尽全力争每一分！",成绩水平:2,学习状态:5,精神状态:-5,_narrative:"你像打了鸡血一样疯狂答题，连背面附加题都没放过。交卷后你瘫在椅子上——尽力了，不留遗憾。"},
+    {label:"轻松应对",desc:"心态放松，尽力就好。",成绩水平:0,精神状态:-1,_narrative:"你没给自己太大压力，会做的全做了，不会的也蒙上了。考完就考完吧，心态平和你就是赢家。"},
+];
+const RESEARCH_OPTIONS=[
+    {label:"深入探究",desc:"沉浸在知识海洋中。",成绩水平:4,学习状态:6,_narrative:"你在实验室里一待就是一天，数据的规律渐渐浮现。那种发现新知的喜悦，让所有疲惫都值得了。"},
+    {label:"开阔视野",desc:"走出课本看世界。",精神状态:5,班级关系:4,_narrative:"研学途中的见闻比课本生动一百倍。你突然明白，世界那么大，学习的意义不只在分数。"},
+    {label:"结交朋友",desc:"结识志同道合的伙伴。",精神状态:4,班级关系:6,_narrative:"在研学途中你遇到了一群有趣的灵魂。你们交换了联系方式，约定以后一起探索更广阔的世界。"},
+];
+const CONFESSION_OPTIONS=[
+    {label:"主动表白",desc:"鼓起勇气说出心里话。",精神状态:2,成绩水平:-3,学习状态:-3,_is_confession:true,_narrative:"你站在Ta面前，心跳快得像要跳出胸膛。话到嘴边又咽回去，但最终还是说出了那句藏在心底很久的话……"},
+    {label:"默默守护",desc:"把心意藏在心底。",爱情进展:1,_narrative:"你选择把这份心意埋在心底。远远地看着Ta的笑容，也许这样就够了。至少，不会失去现在的关系。"},
+    {label:"互诉心声",desc:"找一个安静的角落，彼此坦诚交流。",爱情进展:4,班级关系:2,_narrative:"夕阳下，你们坐在操场的台阶上。你说出了心里的话，Ta也敞开了心扉。无论结果如何，这一刻的真挚永远不会被忘记。"},
+    {label:"专注学习",desc:"先把精力放在学业上。",成绩水平:2,学习状态:5,_narrative:"你狠下心把这份感情压在了课本下面。青春不只有爱情，你告诉自己，等变得更好之后再说吧。"},
+];
+const DATING_COMBOS=[
+    [{label:"去海洋馆约会",desc:"五彩斑斓的鱼群中，Ta笑得很开心。",爱情进展:6,精神状态:3,_narrative:"水母在蓝色灯光下缓缓飘动，Ta贴在玻璃上看呆了。你偷偷拍了张照片——这一刻的Ta，比任何风景都好看。"},{label:"去手工店约会",desc:"一起做陶艺杯子，独一无二的回忆。",爱情进展:5,精神状态:2,_narrative:"你们的手指沾满了泥巴，做出来的杯子歪歪扭扭的。但Ta说，这是全世界最可爱的杯子，因为是你们一起做的。"},{label:"在校园看晚霞",desc:"天边云彩染金，你们并肩而坐。",爱情进展:4,精神状态:4,_narrative:"火烧云把天空染成了橘红色，你们坐在操场的看台上，谁也不说话。有时候，最好的陪伴就是沉默中的默契。"},{label:"在校园散步",desc:"傍晚的校园很安静，聊着梦想。",爱情进展:4,体能水平:3,_narrative:"路灯把影子拉得很长，你们的脚步很慢。从食堂聊到教学楼，从现实聊到幻想——这样的夜晚值得被记住。"}],
+    [{label:"尽力安慰",desc:"Ta心情不好，你说了很多温暖的话。",爱情进展:4,精神状态:2,_narrative:"你轻轻拍了拍Ta的肩膀。有时候不需要太多语言，你在身边，就已经是最好的安慰。"},{label:"沉默倾听",desc:"静静听着Ta倾诉。",爱情进展:3,精神状态:1,_narrative:"你安静地坐在Ta身边，听着Ta把心里的委屈一件件倒出来。倾诉本身，就是治愈的开始。"},{label:"大吵一架",desc:"小事吵了起来，彼此说了伤人的话……",爱情进展:-8,精神状态:-5,_narrative:"情绪像脱缰的野马，你们说了很多不该说的话。Ta转身走开的那一刻，你突然很后悔——可是话已经收不回来了。"}],
+];
+const DREAM_OPTIONS=[
+    {label:"追逐梦想",desc:"为理想制定了清晰计划。",精神状态:5,学习状态:3,_narrative:"你在笔记本上写下自己的目标，从短期到长期，每一步都清晰可见。抬起头，星空依旧璀璨，而你知道自己要去哪里。"},
+    {label:"放松休息",desc:"养足精神才能走更远。",体能水平:5,精神状态:4,_narrative:"你放下书本，给自己泡了一杯热茶。窗外的风吹动着树叶，你闭上眼睛——人生不是百米冲刺，是马拉松。"},
+    {label:"思考人生",desc:"静下心思考未来方向。",精神状态:3,学习状态:5,_narrative:"你坐在天台上，看着远方城市的灯火。关于未来，你还有很多困惑，但思考本身，就是一种成长。"},
+];
+const EXAM_PREP_OPTIONS=[
+    {label:"全力冲刺",desc:"挑灯夜战过每一知识点！",成绩水平:4,学习状态:5,精神状态:-6,_narrative:"你在图书馆从开馆坐到闭馆，咖啡续了一杯又一杯。深夜的校园空无一人，只有你和你的决心。"},
+    {label:"劳逸结合",desc:"合理规划，学习休息两不误。",成绩水平:1,学习状态:3,_narrative:"你制定了科学的复习计划，学习两小时就起来活动十分钟。效率出奇地高，而且没有感到太疲惫。"},
+    {label:"佛系随缘",desc:"该会的自然会，心态最重要。",成绩水平:0,精神状态:3,_narrative:"你没有给自己太大压力，翻翻笔记，做做错题，该吃吃该睡睡。心态好的人，运气也不会太差。"},
+    {label:"彻底摆烂",desc:"反正复习不完，好好休息……",精神状态:5,体能水平:3,_narrative:"你把书一扔，躺在床上刷手机。虽然心里有点不安，但你安慰自己——人生嘛，开心最重要。"},
+];
+const ENCOUNTER_EVENTS=[
+    {label:"捡到复习资料",desc:"在图书馆角落捡到一本学霸的笔记！",type:"positive",narrative:"阳光洒在走廊上，今天运气不错！你心情愉悦，感觉做什么都特别顺利。",成绩水平:4,精神状态:2},
+    {label:"被老师表扬",desc:"老师在班上点名表扬了你最近的进步。",type:"positive",narrative:"被认可的感觉真好啊。走在校园里连脚步都轻快了几分，今天一定是个好日子。",精神状态:3,班级关系:2},
+    {label:"迟到被批评",desc:"闹钟坏了，你迟到了，班主任脸色铁青……",type:"negative",narrative:"唉，人生不如意十之八九。你低着头挨了顿批评，不过没关系，明天又是新的一天。",精神状态:-3},
+    {label:"意外丢东西",desc:"你的饭卡不知道掉哪了，心情跌到谷底。",type:"negative",narrative:"翻遍了书包和口袋都找不到……有时候就是会这样，莫名地丢三落四。算了，补办一张吧。",精神状态:-2},
+    {label:"偶遇老同学",desc:"在校门口偶遇初中老同学，聊起了从前。",type:"neutral",narrative:"旧时光像电影一样在脑海中回放。你们聊了很久，笑着说起当年的糗事。青春就是这样，一边向前走，一边回头看。",精神状态:1},
+    {label:"课堂小互动",desc:"老师让你上台解题，顺利完成。",type:"neutral",narrative:"被点名的那一刻心跳加速，但站到黑板前你反而冷静下来。普通的一天，普通的课堂，但正是这些片段构成了青春。",成绩水平:0},
+];
+
+const BAD_ENDING_MESSAGES={
+    "成绩水平":"📉【学业崩溃】\n你的成绩一落千丈，再也跟不上课程进度。最终，你不得不离开了学校……",
+    "体能水平":"🏥【机能溃败】\n长期的透支终于让你的身体撑不住了。躺在病床上，你后悔没有好好爱惜自己。",
+    "精神状态":"💔【精神坍塌】\n巨大的压力终于压垮了你。你把自己关在房间里，不愿面对任何人。",
+    "学习状态":"😞【厌学弃学】\n你对学习彻底失去了兴趣。课本上的字像蚂蚁一样爬来爬去。",
+    "班级关系":"😢【众叛亲离】\n你在班级中彻底被孤立了。走廊里同学们的欢声笑语与你无关。",
+};
+
+// ==================== 游戏状态 ====================
+let gameState=null;
+let pendingChoiceIndex=null;
+let pendingFlucEffects=null;
+let pendingEncounter=null;
+let pendingNarrative=null;
+let playerName="";
+let playerGender="male";
+let gameDifficulty="normal";
+let partnerName="";
+let nameRerolls=3;
+
+const NAME_POOL=["林夕","陈默","苏雨","张晨","李想","王悦","赵阳","刘洋","周舟","吴桐","孙悦","郑爽","钱程","冯远","蒋晴","沈逸","韩雪","杨帆","朱峰","秦风","许愿","何夕","吕良","施梦","卫兰","柳青","潘安","葛晴","范凯","彭亮","鲁洁","韦博","昌明","马丽","苗苗","方华","任航","袁满","邓超","高远","罗浩","梁宇","宋词","唐艺","谢安","邹雨","苏洛","陆离","白芷","江一舟","叶知秋","顾长安","林听雨","沈千寻","程小北","何以安","季如风","陆星河","安若素","温如玉","楚行云","夏晚晴","钟离墨","花想容","慕容雪","晏无尘","柳如是","兰亭序","苏幕遮","阮星沉","傅小司","童无双","骆一鸣","霍去病","楼心月","尹千觞","薛忘机","封夕瑶","展红绫","洛清尘","聂小凤","姜子期","戚长风","梅若华","萧景行","白素贞","黄小邪","欧阳明日","司马长空","独孤求败","东方未明","南宫问天","莫小贝","任盈盈","张无忌","李逍遥","赵灵儿","林月如","令狐冲","杨铁心"];
+
+function pickRandomName(){return NAME_POOL[randInt(0,NAME_POOL.length-1)]}
+function rerollName(){if(nameRerolls<=0)return;nameRerolls--;playerName=pickRandomName();document.getElementById("name-display").textContent=playerName;document.getElementById("reroll-count").textContent=nameRerolls;if(nameRerolls<=0)document.getElementById("reroll-btn").style.opacity="0.4"}
+function selectGender(g){
+    playerGender=g;
+    document.getElementById("gender-male").style.background=g==="male"?"rgba(74,144,226,0.35)":"rgba(255,255,255,0.05)";
+    document.getElementById("gender-male").style.color=g==="male"?"#fff":"#aaa";
+    document.getElementById("gender-female").style.background=g==="female"?"rgba(255,107,157,0.35)":"rgba(255,255,255,0.05)";
+    document.getElementById("gender-female").style.color=g==="female"?"#fff":"#aaa";
+}
+function updateDiffDesc(){
+    document.getElementById("diff-desc").textContent=gameDifficulty==="hard"?"每次移动扣精神/成绩，成绩增益-1，假期门槛+10":"标准规则，无额外惩罚";
+}
+
+function startGame(){
+    document.getElementById("start-screen").style.display="none";
+    document.getElementById("app").style.display="flex";
+    gameState=initGameState();
+    render();
+}
+
+function initCharacter(){
+    return {成绩水平:38,爱情进展:0,体能水平:50,精神状态:50,学习状态:30,班级关系:20,romance_state:"single"};
+}
+function clampStat(val,statName){
+    if(statName==="班级关系")return Math.max(CLASS_REL_MIN,Math.min(STAT_MAX,val));
+    if(statName==="成绩水平")return Math.max(STAT_MIN,Math.min(GRADE_SCORE_MAX,val));
+    return Math.max(STAT_MIN,Math.min(STAT_MAX,val));
+}
+function getStatMin(sn){return sn==="班级关系"?CLASS_REL_MIN:STAT_MIN}
+
+// ==================== 地图生成 ====================
+function bfsDistance(conn,startKey,targetKey,maxDepth=10){
+    if(startKey===targetKey)return 0;
+    const visited=new Set([startKey]),queue=[[startKey,0]];
+    for(const[cur,dist]of queue){if(dist>=maxDepth)continue;for(const nk of(conn[cur]||[])){if(nk===targetKey)return dist+1;if(!visited.has(nk)){visited.add(nk);queue.push([nk,dist+1])}}}
+    return Infinity;
+}
+
+function generateConnections(gridSize){
+    const edges=[];for(let x=0;x<gridSize;x++)for(let y=0;y<gridSize;y++){if(x+1<gridSize)edges.push([[x,y],[x+1,y]]);if(y+1<gridSize)edges.push([[x,y],[x,y+1]])}
+    shuffle(edges);const parent={};for(let x=0;x<gridSize;x++)for(let y=0;y<gridSize;y++)parent[`${x},${y}`]=`${x},${y}`;
+    function find(p){while(parent[p]!==p){parent[p]=parent[parent[p]];p=parent[p]}return p}
+    function union(a,b){const ra=find(a),rb=find(b);if(ra!==rb){parent[ra]=rb;return true}return false}
+    const conn={};for(let x=0;x<gridSize;x++)for(let y=0;y<gridSize;y++)conn[`${x},${y}`]=[];
+    for(const[a,b]of edges){if(union(`${a[0]},${a[1]}`,`${b[0]},${b[1]}`)){conn[`${a[0]},${a[1]}`].push(`${b[0]},${b[1]}`);conn[`${b[0]},${b[1]}`].push(`${a[0]},${a[1]}`)}}
+    for(const[a,b]of edges){const ka=`${a[0]},${a[1]}`,kb=`${b[0]},${b[1]}`;if(conn[ka].includes(kb))continue;let p=0.15;if(conn[ka].length>=3||conn[kb].length>=3)p=0.03;if(Math.random()<p){conn[ka].push(kb);conn[kb].push(ka)}}
+    const ck=`${Math.floor(gridSize/2)},${Math.floor(gridSize/2)}`,cns=[...conn[ck]],tc=randInt(2,3);
+    const cand=[[gridSize/2-1|0,gridSize/2|0],[gridSize/2+1|0,gridSize/2|0],[gridSize/2|0,gridSize/2-1|0],[gridSize/2|0,gridSize/2+1|0]];
+    if(cns.length<tc){shuffle(cand);for(const[cx,cy]of cand){const k=`${cx},${cy}`;if(cx>=0&&cx<gridSize&&cy>=0&&cy<gridSize&&!conn[ck].includes(k)&&conn[ck].length<tc){conn[ck].push(k);conn[k].push(ck)}}}
+    return conn;
+}
+
+function ensureTypeDiversity(mapData,conn,centerKey){
+    const keys=Object.keys(mapData);
+    for(const key of keys){
+        if(key===centerKey)continue;  // 【Bug修复】跳过中心入学格，绝不交换
+        const cell=mapData[key];if(!conn[key])continue;
+        const nTypes=new Set();for(const nk of conn[key]){if(mapData[nk])nTypes.add(mapData[nk].type)}
+        if(nTypes.size<=1){
+            const others=keys.filter(k=>k!==key&&k!==centerKey&&mapData[k].type!==cell.type&&!REENTERABLE_TYPES.has(mapData[k].type)&&!REENTERABLE_TYPES.has(cell.type));
+            if(others.length>0){const target=others[randInt(0,others.length-1)];const tmp=mapData[target].type;mapData[target].type=cell.type;cell.type=tmp}
+        }
+    }
+}
+
+function generateMap(mapCount){
+    const gridSize=GRID_SIZE_MAP[mapCount],conn=generateConnections(gridSize),mapData={};
+    const cx=Math.floor(gridSize/2),cy=Math.floor(gridSize/2),centerKey=`${cx},${cy}`;
+    const allCells=[];for(let x=0;x<gridSize;x++)for(let y=0;y<gridSize;y++)if(x!==cx||y!==cy)allCells.push([x,y]);
+    shuffle(allCells);
+    mapData[centerKey]={type:"入学",revealed:true,entered:true,blocked:false};
+
+    // 恋爱：距中心≥3步，且不是直接邻居
+    const centerNeighbors=new Set(conn[centerKey]);
+    let loveCell=null;
+    for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){loveCell=cell;break}}
+    if(!loveCell)loveCell=allCells.shift();else allCells.splice(allCells.indexOf(loveCell),1);
+    mapData[`${loveCell[0]},${loveCell[1]}`]={type:"恋爱",revealed:false,entered:false,blocked:false};
+
+    // 研学：距中心≥3步，且不是直接邻居
+    let researchCell=null;
+    for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){researchCell=cell;break}}
+    if(!researchCell)researchCell=allCells.shift();else allCells.splice(allCells.indexOf(researchCell),1);
+    mapData[`${researchCell[0]},${researchCell[1]}`]={type:"研学",revealed:false,entered:false,blocked:false};
+
+    // 追梦：3~5个，距中心≥3步，且不是直接邻居
+    const dreamCount=1,dreamCells=[];
+    for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){dreamCells.push(cell);if(dreamCells.length>=dreamCount)break}}
+    while(dreamCells.length<dreamCount&&allCells.length>0)dreamCells.push(allCells.shift());
+    for(const dc of dreamCells){const idx=allCells.indexOf(dc);if(idx>=0)allCells.splice(idx,1);mapData[`${dc[0]},${dc[1]}`]={type:"追梦",revealed:false,entered:false,blocked:false}}
+
+    // 小长假：地图2/3/5各一次，曼哈顿距离≥2
+    if(mapCount===2||mapCount===3||mapCount===5){
+        let holidayCell=null;
+        for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;const md=Math.abs(cell[0]-cx)+Math.abs(cell[1]-cy);if(md>=2&&!centerNeighbors.has(ck)){holidayCell=cell;break}}
+        if(holidayCell){allCells.splice(allCells.indexOf(holidayCell),1);mapData[`${holidayCell[0]},${holidayCell[1]}`]={type:"小长假",revealed:false,entered:false,blocked:false}}
+    }
+
+    // 剩余：学习:课余:测验:奇遇=3:3:2:2
+    const total=allCells.length,r3=total/10;
+    const studyC=Math.floor(r3*3),extraC=Math.floor(r3*3),testC=Math.floor(r3*2);
+    for(let i=0;i<studyC;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"学习",revealed:false,entered:false,blocked:false}}
+    for(let i=studyC;i<studyC+extraC;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"课余",revealed:false,entered:false,blocked:false}}
+    for(let i=studyC+extraC;i<studyC+extraC+testC;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"测验",revealed:false,entered:false,blocked:false}}
+    for(let i=studyC+extraC+testC;i<allCells.length;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"奇遇",revealed:false,entered:false,blocked:false}}
+
+    ensureTypeDiversity(mapData,conn,centerKey);
+    for(const nk of conn[centerKey]){if(mapData[nk])mapData[nk].revealed=true}
+    // 确保初始节点至少连通一个学习类节点
+    let hasStudy=false;for(const nk of conn[centerKey]){if(mapData[nk]&&mapData[nk].type==="学习"){hasStudy=true;break}}
+    if(!hasStudy){for(const nk of conn[centerKey]){if(mapData[nk]&&!REENTERABLE_TYPES.has(mapData[nk].type)&&mapData[nk].type!=="入学"){mapData[nk].type="学习";break}}}
+    return {mapData,conn,gridSize};
+}
+
+// ==================== 角色逻辑 ====================
+function applyEffects(char,effects){for(const s of STAT_NAMES){if(effects[s]!==undefined)char[s]=clampStat(char[s]+effects[s],s)}}
+function applyClassRelEffects(char){
+    const cr=char["班级关系"];let m="";
+    if(cr>=75){char["精神状态"]=clampStat(char["精神状态"]+2,"精神状态");char["学习状态"]=clampStat(char["学习状态"]+2,"学习状态");m="良好的人际关系让你的状态小幅恢复。"}
+    else if(cr>=50){char["精神状态"]=clampStat(char["精神状态"]+1,"精神状态");char["学习状态"]=clampStat(char["学习状态"]+1,"学习状态");m="融洽的班级氛围让你感到轻松。"}
+    else if(cr>=0&&cr<10)char["爱情进展"]=Math.min(char["爱情进展"],20);
+    else if(cr>=-20&&cr<0){char["爱情进展"]=0;char["精神状态"]=clampStat(char["精神状态"]-1,"精神状态");m="你在班级中有些孤立，精神状态略微下降。"}
+    else if(cr<-20){if(cr>=-50){char["精神状态"]=clampStat(char["精神状态"]-2,"精神状态");char["学习状态"]=clampStat(char["学习状态"]-2,"学习状态");m="班级中的冷遇让你的状态有所下滑。"}else if(cr>=-80){char["精神状态"]=clampStat(char["精神状态"]-3,"精神状态");char["学习状态"]=clampStat(char["学习状态"]-3,"学习状态");m="被孤立的感受让你心力交瘁……"}else{char["精神状态"]=clampStat(char["精神状态"]-5,"精神状态");char["学习状态"]=clampStat(char["学习状态"]-5,"学习状态");m="众叛亲离的处境让你的精神状态急剧恶化！"}}
+    return m;
+}
+function applyGradeDecay(char,mapCount,diff){
+    const hard=diff==="hard";
+    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?4:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?5:0),"精神状态")}
+    else if(mapCount>=3){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:1),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?3:0),"精神状态")}
+    else if(hard){char["成绩水平"]=clampStat(char["成绩水平"]-1,"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-1,"精神状态")}
+}
+function getLoveMultiplier(char){const cr=char["班级关系"];if(cr>=75)return 1.3;if(cr>=50)return 1.15;return 1.0}
+function handleConfession(char){
+    const love=char["爱情进展"];
+    if(love<20){char["爱情进展"]=0;char["romance_state"]="single";return{msg:"你鼓足勇气表白了……但 Ta 委婉地拒绝了你。💔",success:false,popup:true}}
+    if(love<50){const r=Math.random();if(r<0.40){char["爱情进展"]=0;char["romance_state"]="single";return{msg:"「我们还是做朋友吧」。💔",success:false,popup:true}}if(r<0.70){char["爱情进展"]=Math.max(0,char["爱情进展"]>>1);char["romance_state"]="single";return{msg:"Ta 犹豫了很久，最后还是摇了摇头……💔",success:false,popup:true}}if(r<0.98){char["romance_state"]="dating";char["爱情进展"]=clampStat(char["爱情进展"]+5,"爱情进展");partnerName=pickRandomName();return{msg:"Ta 红着脸点了点头！💕 你们在一起了！",success:true,popup:false}}char["romance_state"]="dating";char["爱情进展"]=STAT_MAX;partnerName=pickRandomName();return{msg:"「其实我也喜欢你很久了……」💖 双向奔赴！",success:true,popup:false}}
+    char["romance_state"]="dating";char["爱情进展"]=clampStat(char["爱情进展"]+8,"爱情进展");partnerName=pickRandomName();return{msg:"Ta 笑着接受了你的表白！💕 你们的故事正式开始了。",success:true,popup:false};
+}
+function checkLoveZero(char){if(char["爱情进展"]<=0&&char["romance_state"]==="dating"){char["romance_state"]="single";char["爱情进展"]=0;return"💔 你们的感情走到了尽头……Ta 不喜欢你了，这段爱情结束了。"}if(char["爱情进展"]<=0)char["爱情进展"]=0;return null}
+
+// ==================== 考试系统 ====================
+function doExam(char){const cv=char["成绩水平"]+char["学习状态"];let m,ef;if(cv>=140){m="📊 期末测验成绩优异！年级名列前茅。";ef={成绩水平:4,学习状态:3,精神状态:2,班级关系:2}}else if(cv>=100){m="📊 发挥不错，稳居中上游。";ef={成绩水平:1,学习状态:2,精神状态:0,班级关系:1}}else if(cv>=60){m="📊 勉强过关，有些科目需加把劲。";ef={成绩水平:0,学习状态:-1,精神状态:-1,班级关系:0}}else{m="📊 考砸了……心里很不是滋味。";ef={成绩水平:-3,学习状态:-3,精神状态:-3,班级关系:-2}};applyEffects(char,ef);return m}
+function doGaokao(char){
+    const c=char,s=c["成绩水平"]+c["学习状态"];
+    const endings=[];
+    // [1] 金榜题名: score≥210, spirit≥10, 互斥多个
+    if(s>=210&&c["精神状态"]>=10)endings.push({id:"金榜题名",icon:"🏆",text:"你以优异的成绩考入了全国学子梦寐以求的燕京大学！高中三年的努力得到了最好的回报。"});
+    // [2] 问心无愧: score≥170, spirit≥10, 互斥
+    else if(s>=170&&c["精神状态"]>=10)endings.push({id:"问心无愧",icon:"🎯",text:"你以优异的成绩考入了从小便定下的梦校光华大学！十八年的付出换来了最称心如意的答案。"});
+    // [3] 青春无悔: love≥60, score≥120
+    if(c["爱情进展"]>=60&&s>=120)endings.push({id:"青春无悔",icon:"💕",text:"你不仅收获了不错的成绩，更拥有了一段难忘的青春回忆。"});
+    // [4] 阳光少年: 体能≥80, 互斥
+    if(c["体能水平"]>=80&&!endings.some(e=>["金榜题名","问心无愧","天道酬勤","平凡之路","重新出发"].includes(e.id)))endings.push({id:"阳光少年",icon:"⚽",text:"体育天赋让你以特长生的身份进入心仪大学。汗水浇灌的青春同样精彩！"});
+    // [5] 天道酬勤: score>140, 互斥
+    if(s>140&&!endings.some(e=>["金榜题名","问心无愧","平凡之路","阳光少年","重新出发","痴情一世"].includes(e.id)))endings.push({id:"天道酬勤",icon:"📚",text:"扎实的努力换来了一所不错的大学。人生路还长，继续加油！"});
+    // [6] 多彩青春: spirit≥60, classRel≥60
+    if(c["精神状态"]>=60&&c["班级关系"]>=60)endings.push({id:"多彩青春",icon:"🌈",text:"高中生活丰富多彩，你收获了友谊和对生活的热爱，或许还有一丝年少纯真的感情。"});
+    // [7] 平凡之路: score≥60, 互斥
+    if(s>=60&&!endings.some(e=>["天道酬勤","阳光少年","金榜题名","问心无愧","重新出发"].includes(e.id)))endings.push({id:"平凡之路",icon:"🚶",text:"成绩平平进入普通院校，但人生不只考试，还有无限可能。"});
+    // [8] 重新出发: score≤20, study≥80, 互斥
+    if(s<=20&&c["学习状态"]>=80&&!endings.some(e=>["金榜题名","阳光少年","天道酬勤","问心无愧","平凡之路"].includes(e.id)))endings.push({id:"重新出发",icon:"😢",text:"高考结果不尽如人意，你带着一份不甘，决定从头来过。"});
+    // [9] 痴情一世: love≥70, score≤80, 互斥
+    if(c["爱情进展"]>=70&&s<=80&&!endings.some(e=>["金榜题名","天道酬勤","问心无愧","青春无悔"].includes(e.id)))endings.push({id:"痴情一世",icon:"💔",text:"你执着于校园里那抹青涩的感情，在青春的路口徘徊不前。或许有些美好，注定只能留在回忆里。"});
+    // [10] 精神危机: spirit≤20
+    if(c["精神状态"]<=20)endings.push({id:"精神危机",icon:"😰",text:"你终于熬过了高中三年无尽的刷题和考试。但无数个挑灯夜战的凌晨，朦胧早起的清晨，那些被试卷填满的日子——它们在你心里留下了太深的刻痕。"});
+    // [11] 科研之星: score≥120, study≥70
+    if(s>=120&&c["学习状态"]>=70)endings.push({id:"科研之星",icon:"🔬",text:"你对知识的热爱超越了分数本身。在科研的路上，你找到了属于自己的方向，未来可期。"});
+    // 无结局则默认
+    if(endings.length===0)endings.push({id:"默认",icon:"🎓",text:"高中三年画上了句号。你站在人生的十字路口，前方是未知的旷野，也是无限的可能。"});
+    // 融合或单一
+    if(endings.length===1)return {ending:endings[0].icon+"【"+endings[0].id+"】\n"+endings[0].text,tags:[endings[0].id]};
+    const title="🌟 融合结局";
+    const texts=endings.map(e=>e.text).join("\n\n");
+    const tags=endings.map(e=>e.icon+e.id).join(" ");
+    return {ending:title+"\n\n"+texts+"\n\n🏷️ "+tags,tags:endings.map(e=>e.id),fusion:true};
+}
+
+// ==================== 游戏状态管理 ====================
+function initGameState(){
+    const{mapData,conn,gridSize}=generateMap(1);
+    return{player_pos:[Math.floor(gridSize/2),Math.floor(gridSize/2)],progress:0,progress_max:PROGRESS_MAX_MAP[1],map_count:1,grid_size:gridSize,map_data:mapData,connections:conn,character:initCharacter(),game_over:false,message:"你踏入了重点高中的校门，新的高中生活开始了！点击已点亮的格子来探索吧。",pending_cell:null,pending_options:null,pending_type:null,exam_result:null,ending:null,bad_ending:null,critical_stats:[],in_exam_prep:false,history:[],current_path:[],holiday:null};
+}
+function saveMapSnapshot(state){
+    const ce=[],tc={},cellMap={};let cr=0;
+    for(const[k,cell]of Object.entries(state.map_data)){
+        if(cell.revealed){cr++;cellMap[k]={type:cell.type,entered:cell.entered,blocked:cell.blocked};}
+        if(cell.entered){ce.push(cell.type);tc[cell.type]=(tc[cell.type]||0)+1}
+    }
+    state.history.push({map:state.map_count,semester:SEMESTER_NAMES[state.map_count]||"",grid_size:state.grid_size,progress:state.progress,cells_revealed:cr,cells_entered:ce.length,types:tc,path:[...state.current_path],cellMap});
+    state.current_path=[];
+}
+function revealConnected(state,x,y){const key=`${x},${y}`;for(const nk of(state.connections[key]||[])){if(state.map_data[nk]&&!state.map_data[nk].revealed)state.map_data[nk].revealed=true}}
+function checkBadEnding(state,effects){
+    for(const s of[...state.critical_stats]){const ev=effects[s]||0;if(ev<=0&&state.character[s]<=getStatMin(s)){state.game_over=true;state.bad_ending=BAD_ENDING_MESSAGES[s]||`${s}跌入谷底……`;state.message=`💀 坏结局触发！${s}已经降到了最低点……`;return true}if(ev>0||state.character[s]>getStatMin(s))state.critical_stats=state.critical_stats.filter(x=>x!==s)}
+    return false;
+}
+function updateCriticalStats(state){for(const s of STAT_NAMES){if(s==="爱情进展")continue;if(state.character[s]<=getStatMin(s)&&!state.critical_stats.includes(s))state.critical_stats.push(s)}}
+function transitionToNextMap(state){const nm=state.map_count+1;saveMapSnapshot(state);const{mapData,conn,gridSize}=generateMap(nm);state.map_data=mapData;state.connections=conn;state.grid_size=gridSize;state.player_pos=[Math.floor(gridSize/2),Math.floor(gridSize/2)];state.progress=0;state.progress_max=PROGRESS_MAX_MAP[nm];state.map_count=nm;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.critical_stats=[];state.in_exam_prep=false}
+function checkProgressFull(state){
+    if(state.progress<state.progress_max)return false;
+    if(state.in_exam_prep){const m=doExam(state.character);state.exam_result=m;state.in_exam_prep=false;state.message=m+`\n\n新学期开始了——${SEMESTER_NAMES[state.map_count+1]||""}`;transitionToNextMap(state);return false}
+    if(state.map_count<TOTAL_MAPS){state.in_exam_prep=true;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.message="📚 期末考试临近！你需要为即将到来的考试做好备考准备。";return false}
+    else{saveMapSnapshot(state);const result=doGaokao(state.character);state.ending=typeof result==="string"?result:result.ending;state.fusion=result.fusion||false;state.tags=result.tags||[];state.game_over=true;state.message="🎓 高考结束！";return true}
+}
+
+// ==================== 游戏逻辑 ====================
+function getLoveOptions(char){return char.romance_state==="dating"?{type:"恋爱",options:DATING_COMBOS[Math.random()<0.6?0:1]}:{type:"恋爱",options:CONFESSION_OPTIONS}}
+
+// ==================== 小长假系统 ====================
+function generateHolidayMap(){
+    const gs=3,conn={},md={};
+    for(let x=0;x<gs;x++)for(let y=0;y<gs;y++){
+        const k=`${x},${y}`;conn[k]=[];
+        if(x+1<gs){conn[k].push(`${x+1},${y}`);conn[`${x+1},${y}`].push(k)}
+        if(y+1<gs){conn[k].push(`${x},${y+1}`);conn[`${x},${y+1}`].push(k)}
+    }
+    md["1,1"]={type:"放假",revealed:true,entered:true,blocked:false};
+    const cells=[[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2]];shuffle(cells);
+    const lc=cells.shift();md[`${lc[0]},${lc[1]}`]={type:"恋爱",revealed:true,entered:false,blocked:false};
+    for(let i=0;i<3;i++){const c=cells[i];md[`${c[0]},${c[1]}`]={type:"学习",revealed:true,entered:false,blocked:false}}
+    for(let i=3;i<cells.length;i++){const c=cells[i];md[`${c[0]},${c[1]}`]={type:"课余",revealed:true,entered:false,blocked:false}}
+    return {mapData:md,connections:conn,gridSize:gs};
+}
+function enterHoliday(){
+    const h=generateHolidayMap();
+    gameState.holiday={saved:{map_data:gameState.map_data,connections:gameState.connections,grid_size:gameState.grid_size,player_pos:[...gameState.player_pos],progress:gameState.progress},steps:0,maxSteps:3};
+    gameState.map_data=h.mapData;gameState.connections=h.connections;gameState.grid_size=h.gridSize;
+    gameState.player_pos=[1,1];gameState.progress=0;gameState.progress_max=3;
+    gameState.message="🏖️ 假期开始！你有3步自由时光，好好享受吧。";
+}
+function exitHoliday(){
+    if(!gameState.holiday)return;
+    const s=gameState.holiday.saved;
+    gameState.map_data=s.map_data;gameState.connections=s.connections;gameState.grid_size=s.grid_size;
+    gameState.player_pos=s.player_pos;gameState.progress=s.progress;gameState.progress_max=PROGRESS_MAX_MAP[gameState.map_count];
+    gameState.holiday=null;gameState.message="假期结束，回到了熟悉的校园。";
+}
+
+function getHolidayScoreReq(mapCount,diff){const base=mapCount===2?60:mapCount===3?100:130;return diff==="hard"?base+10:base}
+
+function enterCell(x,y){
+    if(gameState.game_over||gameState.pending_cell!==null)return;
+    // 【BUG修复】期末备考特殊处理 - 不受 map_data 限制
+    if(gameState.in_exam_prep){
+        const preOpts=EXAM_PREP_OPTIONS.map(o=>{const fl={};for(const s of STAT_NAMES){if(o[s]!==undefined)fl[s]=fluctuate(o[s])}return{...o,_fluctuated:fl}});
+        gameState.pending_cell=[0,0];gameState.pending_options=preOpts;gameState.pending_type="期末备考";
+        showModal("期末备考",preOpts);render();return;
+    }
+    const key=`${x},${y}`,cell=gameState.map_data[key];
+    if(!cell)return;if(!cell.revealed)return alert("该区域尚未点亮");if(cell.blocked)return alert("该区域已被封锁");
+    // 小长假：选项节点
+    if(cell.type==="小长假"){
+        const req=getHolidayScoreReq(gameState.map_count);
+        const canGo=gameState.character["成绩水平"]>=req;
+        typeLabel="小长假";options=[
+            {label:`去度假(需成绩≥${req})`,desc:canGo?"享受难得的假期时光！":"成绩不足，无法度假",_is_holiday:true,_disabled:!canGo,成绩水平:0,精神状态:3,_narrative:"你收拾好行李，奔向阳光和海滩。假期虽短，但足够让人满血复活。"},
+            {label:"上补习班",desc:"假期也不放松，弯道超车的好机会。",成绩水平:8,_no_fluctuate:true,_narrative:"别人在度假，你在刷题。虽然辛苦，但你知道这些努力都会在考场上兑现。"},
+        ];
+        if(!canGo)options[0].desc="成绩不足，无法度假";
+        gameState.pending_cell=[x,y];gameState.pending_options=options;gameState.pending_type=typeLabel;
+        showModal(typeLabel,options);render();return;
+    }
+    // 放假中心格
+    if(cell.type==="入学"){if(cell.entered&&x===gameState.player_pos[0]&&y===gameState.player_pos[1])return;cell.entered=true;gameState.player_pos=[x,y];revealConnected(gameState,x,y);gameState.message="你站在校门口，一切从这里开始。";render();return}
+    if(!REENTERABLE_TYPES.has(cell.type)&&cell.entered&&BLOCKABLE_TYPES.has(cell.type))return alert("该区域已被封锁");
+    let typeLabel,options;
+    if(cell.type==="恋爱"){({type:typeLabel,options}=getLoveOptions(gameState.character))}
+    else if(cell.type==="学习"){typeLabel="学习";options=LEARNING_OPTIONS}
+    else if(cell.type==="课余"){typeLabel="课余";options=getExtracurricularOptions()}
+    else if(cell.type==="测验"){typeLabel="测验";options=TEST_OPTIONS}
+    else if(cell.type==="追梦"){typeLabel="追梦";options=DREAM_OPTIONS}
+    else if(cell.type==="研学"){typeLabel="研学";options=RESEARCH_OPTIONS}
+    else if(cell.type==="奇遇"){
+        typeLabel="奇遇";
+        const pool=[...ENCOUNTER_EVENTS];shuffle(pool);
+        options=[pool[0],{label:"无所事事",desc:"发发呆，什么也不做，让时间慢慢流过。",type:"neutral",narrative:"你靠在窗边，看着云朵慢慢飘过。有时候什么都不做，也是一种奢侈。人生不需要时时刻刻都在奔跑。",成绩水平:0,学习状态:0,体能水平:0,精神状态:1,爱情进展:0,班级关系:0,_no_fluctuate:true}];
+    }
+    else return;
+    // 【Bug修复】进入节点瞬间固化所有选项的随机波动值
+    options=options.map(o=>{const fl={};for(const s of STAT_NAMES){if(o[s]!==undefined)fl[s]=fluctuate(o[s])}return{...o,_fluctuated:fl}});
+    gameState.pending_cell=[x,y];gameState.pending_options=options;gameState.pending_type=typeLabel;
+    showModal(typeLabel,options);render();
+}
+
+function previewChoice(index){
+    pendingChoiceIndex=index;
+    const opt=gameState.pending_options[index];
+    const eff=opt._fluctuated||{};
+    const isEncounter=gameState.pending_type==="奇遇";
+    pendingFlucEffects=isEncounter?{}:eff;
+    document.querySelectorAll(".option-btn").forEach((b,i)=>{
+        b.classList.toggle("selected",i===index);
+        const old=b.querySelector(".opt-effects");if(old)old.remove();
+        if(i===index){
+            const div=document.createElement("div");div.className="opt-effects";
+            if(isEncounter){
+                div.innerHTML='<span style="color:#aaa;font-size:10px;font-style:italic;">高中生活就是如此，下一步会发生什么难以预料……</span>';
+            }else{
+                let h="";for(const[s,v]of Object.entries(eff)){if(v===0)continue;const cls=v>0?"eff-up":"eff-down";const sign=v>0?"+"+v:v;h+=`<span class="${cls}" style="margin-right:8px;font-size:10px;">${STAT_EMOJI[s]||''}${STAT_FULL[s]||s} ${sign}</span>`}
+                if(!h)h='<span style="color:#999;font-size:10px;">无变化</span>';
+                div.innerHTML=h;
+            }
+            div.style.cssText="margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.1)";
+            b.appendChild(div);
+        }
+    });
+    document.getElementById("confirm-row").style.display="flex";
+}
+function cancelPreview(){pendingChoiceIndex=null;pendingFlucEffects=null;document.querySelectorAll(".option-btn").forEach(b=>{b.classList.remove("selected");const ef=b.querySelector(".opt-effects");if(ef)ef.remove()});document.getElementById("confirm-row").style.display="none"}
+function confirmChoice(){
+    if(pendingChoiceIndex===null)return;
+    const index=pendingChoiceIndex;
+    const flucEff=pendingFlucEffects||{};
+    closeModal();
+    const chosen=gameState.pending_options[index];
+    const[px,py]=gameState.pending_cell,key=`${px},${py}`;
+    const cell=(gameState.in_exam_prep)?{type:"期末备考"}:gameState.map_data[key];
+    if(!cell)return;
+    const ctype=cell.type||gameState.pending_type;
+    const adjEff={};
+    if(gameState.pending_type==="奇遇"){
+        // 奇遇：使用预计算的波动效果，不重复 fluctuate
+        for(const s of STAT_NAMES){if(chosen._fluctuated&&chosen._fluctuated[s]!==undefined){let v=chosen._fluctuated[s];if(s==="爱情进展"&&v>0)v=Math.floor(v*getLoveMultiplier(gameState.character));adjEff[s]=v}}
+    }else{
+        for(const s of STAT_NAMES){if(flucEff[s]!==undefined){let v=flucEff[s];if(s==="爱情进展"&&v>0)v=Math.floor(v*getLoveMultiplier(gameState.character));adjEff[s]=v}}
+    }
+    if(checkBadEnding(gameState,adjEff)){gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;render();return}
+    // 困难模式：成绩增量-1
+    if(gameDifficulty==="hard"&&adjEff["成绩水平"]&&adjEff["成绩水平"]>0)adjEff["成绩水平"]=Math.max(0,adjEff["成绩水平"]-1);
+    // 小长假度假选项
+    if(chosen._is_holiday){
+        gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+        enterHoliday();render();return;
+    }
+    // 奇遇：走专属弹窗
+    if(gameState.pending_type==="奇遇"){
+        pendingEncounter={chosen,narrative:chosen.narrative||chosen.desc,effects:adjEff,cell,px,py,ctype:cell?cell.type:"奇遇"};
+        showEncounterPopup(chosen.narrative||chosen.desc,adjEff);
+        return;
+    }
+    applyEffects(gameState.character,adjEff);
+    applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);
+    const classMsg=applyClassRelEffects(gameState.character);
+    if(ctype==="期末备考"){gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;if(classMsg)gameState.message+="\n"+classMsg;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;checkProgressFull(gameState);render();return}
+    // 非表白非奇遇：弹出叙事弹窗
+    if(!chosen._is_confession&&chosen._narrative){
+        pendingNarrative={chosen,classMsg,cell,px,py,ctype};
+        document.getElementById("narrative-text").textContent=chosen._narrative;
+        document.getElementById("narrative-popup-overlay").style.display="flex";
+        return;
+    }
+    let confMsg=null;if(chosen._is_confession){const r=handleConfession(gameState.character);confMsg=r.msg;gameState.message=`你选择了【${chosen.label}】—— ${confMsg}`}else gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;
+    if(classMsg)gameState.message+="\n"+classMsg;
+    const lzMsg=checkLoveZero(gameState.character);if(lzMsg){gameState.message+="\n"+lzMsg;document.getElementById("love-popup-msg").textContent=lzMsg;document.getElementById("love-popup-overlay").style.display="flex"}
+    cell.entered=true;gameState.player_pos=[px,py];if(BLOCKABLE_TYPES.has(ctype))cell.blocked=true;revealConnected(gameState,px,py);
+    gameState.current_path.push(ctype);
+    gameState.progress++;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+    updateCriticalStats(gameState);checkProgressFull(gameState);render();
+}
+
+// ==================== 奇遇弹窗 ====================
+function showEncounterPopup(narrative,effects){
+    document.getElementById("encounter-narrative").textContent=narrative;
+    const efEl=document.getElementById("encounter-effects");
+    let html="";for(const[s,v]of Object.entries(effects)){if(v===0)continue;const cls=v>0?"eff-up":"eff-down";const sign=v>0?"+"+v:v;html+=`<span class="${cls}" style="margin:0 6px;font-size:12px;">${STAT_EMOJI[s]||""}${STAT_FULL[s]||s} ${sign}</span>`}
+    if(!html)html='<span style="color:#999;font-size:12px;">无状态变化</span>';
+    efEl.innerHTML=html;
+    document.getElementById("encounter-popup-overlay").style.display="flex";
+}
+function confirmEncounter(){
+    document.getElementById("encounter-popup-overlay").style.display="none";
+    if(!pendingEncounter)return;
+    const{chosen,effects,cell,px,py,ctype}=pendingEncounter;
+    pendingEncounter=null;
+    applyEffects(gameState.character,effects);
+    applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);
+    const classMsg=applyClassRelEffects(gameState.character);
+    gameState.message=`🎲 奇遇 —— ${chosen.narrative||chosen.desc}`;
+    if(classMsg)gameState.message+="\n"+classMsg;
+    const lzMsg=checkLoveZero(gameState.character);if(lzMsg){gameState.message+="\n"+lzMsg;document.getElementById("love-popup-msg").textContent=lzMsg;document.getElementById("love-popup-overlay").style.display="flex"}
+    if(cell){cell.entered=true;gameState.player_pos=[px,py];if(BLOCKABLE_TYPES.has(ctype))cell.blocked=true;revealConnected(gameState,px,py)}
+    gameState.current_path.push(ctype||"奇遇");
+    gameState.progress++;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+    updateCriticalStats(gameState);checkProgressFull(gameState);render();
+}
+
+// ==================== UI渲染 ====================
+function buildConnectionLines(state){const lines=[],seen=new Set();for(const[key,neighbors]of Object.entries(state.connections)){const[x1,y1]=key.split(",").map(Number);for(const nk of neighbors){const pair=[key,nk].sort().join("|");if(seen.has(pair))continue;seen.add(pair);const[x2,y2]=nk.split(",").map(Number);lines.push([x1,y1,x2,y2])}}return lines}
+function renderConnections(lines,gridSize,total){const svg=document.getElementById("conn-svg"),w=gridSize*total-CELL_GAP;svg.setAttribute("width",w);svg.setAttribute("height",w);svg.setAttribute("viewBox",`0 0 ${w} ${w}`);svg.innerHTML="";if(!lines)return;const sz=total-CELL_GAP,h=sz/2;for(const[x1,y1,x2,y2]of lines){const l=document.createElementNS("http://www.w3.org/2000/svg","line");l.setAttribute("x1",x1*total+h);l.setAttribute("y1",y1*total+h);l.setAttribute("x2",x2*total+h);l.setAttribute("y2",y2*total+h);l.setAttribute("stroke","rgba(255,255,255,0.45)");l.setAttribute("stroke-width","3");l.setAttribute("stroke-linecap","round");l.setAttribute("filter","drop-shadow(0 0 2px rgba(255,255,255,0.3))");svg.appendChild(l)}}
+
+function render(){
+    const state=gameState;if(!state)return;
+    const cs=getCellSize(),total=cs+CELL_GAP;
+    let grid,gridSize,playerPos,connLines;
+    if(state.in_exam_prep){grid=[[{x:0,y:0,type:"期末备考",icon:"📚",color:"#E67E22",entered:false,blocked:false}]];gridSize=1;playerPos=[0,0];connLines=[]}
+    else{grid=[];gridSize=state.grid_size;playerPos=state.player_pos;
+        for(let y=0;y<gridSize;y++){const row=[];for(let x=0;x<gridSize;x++){const key=`${x},${y}`,cell=state.map_data[key];if(cell&&cell.revealed)row.push({x,y,type:cell.type,icon:CELL_TYPE_CONFIG[cell.type]?.icon,color:CELL_TYPE_CONFIG[cell.type]?.color,entered:cell.entered,blocked:cell.blocked});else row.push(null)}grid.push(row)}
+        connLines=buildConnectionLines(state)}
+    const gridEl=document.getElementById("grid");gridEl.style.gridTemplateColumns=`repeat(${gridSize},${cs}px)`;gridEl.style.gridTemplateRows=`repeat(${gridSize},${cs}px)`;gridEl.innerHTML="";
+    for(let row=0;row<gridSize;row++)for(let col=0;col<gridSize;col++){const cd=grid[row][col],div=document.createElement("div");div.className="cell";div.style.width=cs+"px";div.style.height=cs+"px";
+        if(cd===null){div.classList.add("fog");div.innerHTML="❓"}else{div.style.background=CELL_COLORS[cd.type]||"#555";div.innerHTML=`<span class="icon">${CELL_ICONS[cd.type]||"❓"}</span><span class="label">${cd.type}</span>`;if(cd.x===playerPos[0]&&cd.y===playerPos[1])div.classList.add("current");if(cd.entered){if(REENTERABLE_TYPES.has(cd.type))div.classList.add("reenterable");else div.classList.add("entered")}if(cd.blocked)div.classList.add("blocked");const isCur=cd.x===playerPos[0]&&cd.y===playerPos[1];const canEnter=!cd.blocked&&(REENTERABLE_TYPES.has(cd.type)||!isCur||!cd.entered);if(canEnter&&!state.game_over)div.addEventListener("click",()=>enterCell(cd.x,cd.y))}
+        gridEl.appendChild(div)}
+    renderConnections(connLines,gridSize,total);
+    // 倒计时显示
+    const remain=state.progress_max-state.progress;
+    document.getElementById("semester-title").textContent="📅 "+(SEMESTER_NAMES[state.map_count]||"");
+    const cdEl=document.getElementById("countdown-num"),fillEl=document.getElementById("countdown-fill");
+    const oldRemain=parseInt(cdEl.textContent)||state.progress_max;cdEl.textContent=remain;
+    if(remain!==oldRemain){cdEl.classList.remove("countdown-text-pop");void cdEl.offsetWidth;cdEl.classList.add("countdown-text-pop");fillEl.classList.remove("flash");void fillEl.offsetWidth;fillEl.classList.add("flash")}
+    const pct=remain/state.progress_max;fillEl.style.width=(pct*100)+"%";
+    fillEl.style.background=pct>0.6?"linear-gradient(90deg,#2ecc71,#27ae60)":pct>0.3?"linear-gradient(90deg,#f39c12,#e67e22)":"linear-gradient(90deg,#e74c3c,#c0392b)";
+    document.getElementById("message-box").textContent=state.message;
+    document.getElementById("critical-indicator").style.display=state.critical_stats.length>0?"inline":"none";
+    const statsEl=document.getElementById("stats-container");statsEl.innerHTML="";
+    for(const[s,v]of Object.entries(state.character)){if(s==="romance_state")continue;const ic=STAT_EMOJI[s]||"",fn=STAT_FULL[s]||s;const isCR=s==="班级关系",isScore=s==="成绩水平";const maxV=isScore?150:100,minV=isCR?-100:0;const p=(v-minV)/(maxV-minV)*100,cr=state.critical_stats.includes(s);
+        const zeroPct=isCR?((0-minV)/(maxV-minV)*100):-1;
+        statsEl.innerHTML+=`<div class="stat-row"><span style="font-size:9px;color:#555;width:22px;">${minV}</span><span class="stat-name ${cr?"critical-warn":""}">${ic}${fn}</span><div class="stat-bar-bg" style="position:relative;">${zeroPct>=0?`<div style="position:absolute;left:${zeroPct}%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.3);z-index:1;"></div>`:""}<div class="stat-bar-fill" style="width:${p}%;background:${STAT_COLORS[s]}"></div></div><span class="stat-val ${cr?"critical-warn":""}">${v}</span><span style="font-size:9px;color:#555;width:22px;text-align:left;">${maxV}</span></div>`}
+    if(state.game_over)showEnding();
+    // 小长假步数耗尽自动退出
+    if(state.holiday&&state.holiday.steps>=state.holiday.maxSteps){exitHoliday();render();return}
+}
+
+function showModal(cellType,options){
+    document.getElementById("modal-title").textContent=(CELL_ICONS[cellType]||"")+" "+cellType;
+    document.getElementById("modal-subtitle").textContent="请做出你的选择：";
+    let desc=NODE_DESCRIPTIONS[cellType]||"";
+    if(cellType==="恋爱"&&playerGender==="male")desc="走廊拐角处，那个女孩的身影一闪而过。你的心跳漏了一拍，手心微微出汗。";
+    if(cellType==="恋爱"&&playerGender==="female")desc="篮球场边，那个男生的笑容让你移不开眼睛。你的心跳漏了一拍，脸颊微微发烫。";
+    document.getElementById("node-desc").textContent=desc;
+    const optsEl=document.getElementById("modal-options");optsEl.innerHTML="";
+    options.forEach((opt,i)=>{const btn=document.createElement("button");btn.className="option-btn";if(opt._disabled){btn.style.opacity="0.35";btn.style.cursor="not-allowed"}btn.innerHTML=`<div class="opt-label">${opt.label}</div><div class="opt-desc">${opt.desc}</div>`;btn.addEventListener("click",()=>{if(opt._disabled)return;if(pendingChoiceIndex===i){confirmChoice()}else{previewChoice(i)}});optsEl.appendChild(btn)});
+    document.getElementById("confirm-row").style.display="none";pendingChoiceIndex=null;pendingFlucEffects=null;
+    document.getElementById("modal-overlay").style.display="flex";
+}
+function closeModal(){document.getElementById("modal-overlay").style.display="none";pendingChoiceIndex=null;pendingFlucEffects=null}
+function closeNarrativePopup(){
+    document.getElementById("narrative-popup-overlay").style.display="none";
+    if(!pendingNarrative)return;
+    const{chosen,classMsg,cell,px,py,ctype,isEncounter}=pendingNarrative;
+    pendingNarrative=null;
+    if(isEncounter){
+        gameState.message=`🎲 奇遇 —— ${chosen.narrative||chosen.desc}`;
+    }else{
+        gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;
+    }
+    if(classMsg)gameState.message+="\n"+classMsg;
+    const lzMsg=checkLoveZero(gameState.character);if(lzMsg){gameState.message+="\n"+lzMsg;document.getElementById("love-popup-msg").textContent=lzMsg;document.getElementById("love-popup-overlay").style.display="flex"}
+    if(cell){cell.entered=true;gameState.player_pos=[px,py];if(BLOCKABLE_TYPES.has(ctype))cell.blocked=true;revealConnected(gameState,px,py)}
+    gameState.current_path.push(ctype||"奇遇");
+    gameState.progress++;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+    if(gameState.holiday){gameState.holiday.steps++;if(gameState.holiday.steps>=gameState.holiday.maxSteps){exitHoliday()}}
+    updateCriticalStats(gameState);checkProgressFull(gameState);render();
+}
+function closeLovePopup(){document.getElementById("love-popup-overlay").style.display="none"}
+function showGuide(){document.getElementById("guide-overlay").style.display="flex"}
+function buildSummaryHTML(){
+    const char=gameState.character||{},hist=gameState.history||[];let h=`<hr style="border-color:rgba(255,255,255,0.15);margin:16px 0;"><h4 style="color:#FFD700;margin-bottom:8px;">${playerName} 的高中生涯</h4>`;
+    for(const[s,v]of Object.entries(char)){if(s==="romance_state")continue;const ic=STAT_EMOJI[s]||"",fn=STAT_FULL[s]||s;const p=Math.max(0,Math.min(100,s==="班级关系"?(v+100)/2:v));h+=`<div style="display:flex;align-items:center;font-size:11px;margin:2px 0;"><span style="width:80px;text-align:right;color:#aaa;">${ic} ${fn}</span><div style="flex:1;height:7px;background:rgba(255,255,255,0.1);border-radius:4px;margin:0 6px;"><div style="height:100%;width:${p}%;background:${STAT_COLORS[s]};border-radius:4px;"></div></div><span style="width:24px;">${v}</span></div>`}
+    if(hist.length>0){h+='<h4 style="color:#aaa;margin:12px 0 6px;">📅 学期回顾</h4>';hist.forEach(hh=>{const ts=Object.entries(hh.types||{}).map(([t,c])=>`${t}×${c}`).join(" ");const pathStr=(hh.path||[]).map(t=>CELL_ICONS[t]||t).join(" → ");h+=`<div style="font-size:10px;color:#999;margin:2px 0;">${hh.semester} (${hh.grid_size}×${hh.grid_size}) 探索${hh.cells_entered}格 ${ts}</div>`;if(pathStr)h+=`<div style="font-size:10px;color:#666;margin:1px 0 4px 8px;">🗺️ ${pathStr}</div>`;
+        // 迷你地图
+        if(hh.cellMap){const gs=hh.grid_size,cs=Math.min(18,Math.floor(160/gs));h+=`<div style="display:grid;grid-template-columns:repeat(${gs},${cs}px);gap:1px;margin:4px 0 8px 8px;width:${gs*cs+gs-1}px;">`;for(let y=0;y<gs;y++)for(let x=0;x<gs;x++){const key=`${x},${y}`,c=hh.cellMap[key];if(c){const bg=CELL_COLORS[c.type]||"#555";const br=c.entered?"brightness(1)":"brightness(0.25)";h+=`<div style="width:${cs}px;height:${cs}px;background:${bg};filter:${br};border-radius:2px;font-size:${cs-4}px;text-align:center;line-height:${cs}px;">${CELL_ICONS[c.type]||"?"}</div>`}else h+=`<div style="width:${cs}px;height:${cs}px;background:rgba(255,255,255,0.04);border-radius:2px;"></div>`}h+='</div>'}})}
+    if(char.romance_state==="dating"&&partnerName)h+=`<div style="font-size:10px;color:#FF6B9D;margin-top:8px;">💕 恋人：${partnerName}</div>`;
+    h+='<button onclick="resetGame()" style="margin-top:16px;width:100%;">🔄 再来一次</button>';
+    return h;
+}
+function showEnding(){const o=document.getElementById("ending-overlay"),b=document.getElementById("ending-box"),t=document.getElementById("ending-title"),tx=document.getElementById("ending-text");if(gameState.bad_ending){b.classList.add("bad");t.textContent="💀 青春陨落";t.style.color="#e74c3c";tx.innerHTML=(gameState.bad_ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}else if(gameState.ending){b.classList.remove("bad");const isQuit=gameState.ending.includes("退学")||gameState.ending.includes("人生是旷野");const isFusion=gameState.fusion;t.textContent=isQuit?"🚪 退学":isFusion?"🌟 融合结局":"🎓 高中生涯 · 终章";t.style.color=isQuit?"#c0392b":isFusion?"#FFD700":"#FFD700";tx.innerHTML=(gameState.ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}o.style.display="flex"}
+function quitSchool(){
+    gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+    gameState.game_over=true;
+    const c=gameState.character;
+    const dreamCount=(gameState.history||[]).reduce((sum,h)=>sum+(h.types?.["追梦"]||0),0);
+    const allHigh=c["成绩水平"]>=60&&c["体能水平"]>=60&&c["精神状态"]>=60&&c["学习状态"]>=60&&c["班级关系"]>=60;
+    if(allHigh&&dreamCount>5){
+        gameState.ending="🌄【人生是旷野】\n他们问你为什么离开学校，你摇了摇头。你说不清理由，只是心底有个声音在说——你不属于这一方天地。\n\n不是所有人都要走同一条路。你选择了旷野，那就大胆往前走吧。";
+    }else{
+        gameState.ending="🚪【退学！闯荡江湖】\n你收拾好书包，头也不回地走出了校门。校园的钟声在身后渐行渐远。\n\n有人说你疯了，有人说你勇敢。但你只知道——此去江湖路远，天高任鸟飞。\n\n青春不只有高考一条路，你的故事，才刚刚开始。";
+    }
+    gameState.message="你选择了离开……";
+    closeModal();render();
+}
+function resetGame(){
+    document.getElementById("ending-overlay").style.display="none";
+    document.getElementById("start-screen").style.display="flex";
+    nameRerolls=3;
+    playerName=pickRandomName();
+    document.getElementById("name-display").textContent=playerName;
+    document.getElementById("reroll-count").textContent=nameRerolls;
+    document.getElementById("reroll-btn").style.opacity="1";
+    selectGender("male");
+}
+
+// 启动时初始化姓名
+playerName=pickRandomName();
+window.onload=function(){var nd=document.getElementById("name-display");if(nd)nd.textContent=playerName;};
+</script>
+</body>
+</html>
+
+
+
