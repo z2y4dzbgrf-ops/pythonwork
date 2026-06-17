@@ -41,11 +41,11 @@ function renderDecayWarning(){
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#e0e0e0}
+body{overflow-x:hidden;font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#e0e0e0}
 #app{display:flex;gap:22px;padding:18px;align-items:flex-start}
 #grid-wrapper{position:relative;background:rgba(255,255,255,0.05);padding:10px;border-radius:16px;border:1px solid rgba(255,255,255,0.1)}
 #grid{display:grid;gap:5px}
-#conn-svg{position:absolute;top:10px;left:10px;pointer-events:none;z-index:1}
+#conn-svg{position:absolute;top:10px;left:10px;pointer-events:none;z-index:1;width:100%;height:100%}
 .cell{border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;border:2px solid transparent;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.4);z-index:2}
 .cell:hover:not(.fog):not(.blocked){transform:scale(1.10);border-color:#fff;box-shadow:0 0 14px rgba(255,255,255,0.35);z-index:3}
 .cell.current{border:3px solid #fff!important;box-shadow:0 0 16px rgba(255,215,0,0.55);animation:pulse 1.5s infinite}
@@ -58,7 +58,7 @@ body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-co
 .cell.special{border-radius:14px;border:3px solid rgba(255,215,0,0.5);box-shadow:0 0 24px rgba(255,215,0,0.3);animation:specialGlow 2s infinite}
 .cell.special .icon{font-size:32px}.cell.special .label{font-size:14px;font-weight:bold;margin-top:4px}
 @keyframes specialGlow{0%,100%{box-shadow:0 0 16px rgba(255,215,0,0.3)}50%{box-shadow:0 0 36px rgba(255,215,0,0.7)}}
-@media(max-width:768px){.cell.special .icon{font-size:24px}.cell.special .label{font-size:12px}}
+@media(max-width:768px){.cell.special .icon{font-size:26px}.cell.special .label{font-size:13px}}
 #info-panel{width:290px;display:flex;flex-direction:column;gap:10px}
 .panel-box{background:rgba(255,255,255,0.06);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)}
 .panel-box h4{font-size:12px;color:#aaa;margin-bottom:6px}
@@ -101,41 +101,34 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 #ending-box h2{font-size:22px;margin-bottom:14px}
 #ending-box .ending-text{font-size:14px;line-height:1.8;white-space:pre-wrap;color:#ddd;margin-bottom:18px;overflow-wrap:break-word;word-break:break-word}
 @media(max-width:768px){
-    body{align-items:flex-start;padding:0}
-    #app{flex-direction:column;gap:8px;padding:6px;width:100%}
-    #grid-wrapper{width:100%;display:flex;justify-content:center}
-    #info-panel{width:100%}
-    .stat-row .stat-name{width:70px}
-    #start-screen>div{padding:20px!important}
-    #start-screen h1{font-size:24px!important}
-    #start-screen p[style]{font-size:14px!important}
-    #top-row{display:flex;gap:8px}
-    #top-row .msg-box{flex:1;order:1}
-    #top-row .countdown-box{flex:1;order:2}
+    body{align-items:flex-start;padding:0;overflow-x:hidden}
+    #app{flex-direction:column!important;gap:6px;padding:3px;width:100%!important;max-width:100vw;overflow-x:hidden;transform:scale(0.88);transform-origin:top center}
+    #grid-wrapper{width:100%!important;max-width:100vw;display:flex;justify-content:center;overflow-x:auto;padding:4px}#conn-svg{top:4px;left:4px}
+    #grid{max-width:100%}
+    #info-panel{width:100%!important;max-width:100%;gap:6px}
+    .stat-row .stat-name{width:65px;font-size:9px}
+    #start-screen>div{padding:16px!important}
+    #start-screen h1{font-size:22px!important}
+    #start-screen p[style]{font-size:13px!important}
+    #top-row{display:flex;flex-direction:column;gap:6px}
     #stats-box .stat-row{display:inline-block;width:48%;vertical-align:top;margin:2px 1%}
-    #stats-box .stat-row .stat-name{width:65px}
-    /* 模式选择页 */
+    #stats-box .stat-row .stat-name{width:60px}
     #mode-select-screen>div>div[style*="flex"]{flex-direction:column!important;align-items:center}
     #mode-select-screen [id^="mode-"]{min-width:100%!important;max-width:100%!important;margin-bottom:8px}
     #mode-select-screen h2{font-size:20px!important}
     #mode-select-screen{overflow-y:auto!important;-webkit-overflow-scrolling:touch}
-    /* 考试奖励弹窗 */
     #exam-bonus-overlay>div{padding:16px!important;max-width:92%!important}
-    /* 弹窗通用 */
-    #narrative-popup-overlay>div,#encounter-popup-overlay>div{padding:16px!important;max-width:92%!important}
-    #modal,#love-popup{padding:14px!important;max-width:95%!important}
-    #ending-box{padding:18px!important;max-width:95%!important}
+    #narrative-popup-overlay>div,#encounter-popup-overlay>div{padding:14px!important;max-width:94%!important}
+    #modal,#love-popup{padding:12px!important;max-width:96%!important}
+    #ending-box{padding:16px!important;max-width:96%!important}
     #ending-box h2{font-size:18px!important}
     #ending-box .ending-text{font-size:12px!important}
-    #guide-overlay>div{padding:16px!important;max-width:95%!important}
-    /* 按钮 */
+    #guide-overlay>div{padding:14px!important;max-width:96%!important}
     .option-btn{padding:8px 10px!important;font-size:12px!important}
     #confirm-row button{font-size:12px!important;padding:8px!important}
-    /* 提示 */
-    #message-box{max-height:120px!important;font-size:11px!important}
-    /* 地图细胞 */
-    .cell{font-size:12px}.cell .icon{font-size:16px}.cell .label{font-size:8px}
-    .cell.special .icon{font-size:22px}.cell.special .label{font-size:11px}
+    #message-box{max-height:100px!important;font-size:11px!important}
+    .cell{font-size:14px}.cell .icon{font-size:20px}.cell .label{font-size:10px}
+    .cell.special .icon{font-size:26px}.cell.special .label{font-size:13px}
 }
 
 
