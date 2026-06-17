@@ -107,8 +107,29 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
     .cell.special .icon{font-size:22px}.cell.special .label{font-size:11px}
 }
 </style>
+
+<style>
+#dev-panel{display:none;position:fixed;top:0;right:0;width:360px;height:100vh;background:rgba(10,10,30,0.97);border-left:2px solid #4A90E2;z-index:400;overflow-y:auto;padding:16px;font-size:12px;color:#ccc}
+#dev-panel h3{color:#4A90E2;margin:0 0 8px 0;font-size:15px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px}
+#dev-panel h4{color:#aaa;font-size:12px;margin:12px 0 4px 0}
+#dev-panel input,#dev-panel select{width:100%;padding:5px 8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:5px;color:#fff;font-size:12px;margin-top:2px}
+#dev-panel input[type=range]{padding:0;height:6px;accent-color:#4A90E2}
+#dev-panel .dev-row{display:flex;gap:6px;align-items:center;margin:3px 0}
+#dev-panel .dev-row label{flex:0 0 70px;margin:0;font-size:10px}
+#dev-panel .dev-row input{flex:1}
+#dev-panel button{width:100%;margin:4px 0;padding:7px;font-size:11px;background:rgba(74,144,226,0.3);border:1px solid rgba(74,144,226,0.5)}
+#dev-panel button:hover{background:rgba(74,144,226,0.5)}
+#dev-panel button.danger{background:rgba(231,76,60,0.3);border-color:rgba(231,76,60,0.5)}
+#dev-panel button.warn{background:rgba(243,156,18,0.3);border-color:rgba(243,156,18,0.5)}
+#dev-panel button.green{background:rgba(46,204,113,0.3);border-color:rgba(46,204,113,0.5)}
+#dev-panel button.purple{background:rgba(155,89,182,0.3);border-color:rgba(155,89,182,0.5)}
+#dev-toggle{position:fixed;top:8px;right:8px;z-index:401;padding:6px 10px;font-size:11px;background:rgba(74,144,226,0.4);border:1px solid rgba(74,144,226,0.5);border-radius:6px;cursor:pointer;color:#fff}
+#dev-toggle:hover{background:rgba(74,144,226,0.7)}
+@media(max-width:768px){#dev-panel{width:100%;right:0}#dev-toggle{top:4px;right:4px;font-size:10px;padding:4px 8px}}
+</style>
 </head>
 <body>
+<button id="dev-toggle" onclick="toggleDevPanel()">🔧 开发者</button>
 <div id="start-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);z-index:300;display:flex;justify-content:center;align-items:center;">
 <div style="text-align:center;max-width:440px;padding:40px;">
 <h1 style="font-size:32px;margin-bottom:8px;">🎓 高中生涯</h1>
@@ -1150,7 +1171,75 @@ function resetGame(){
 // 启动时初始化姓名
 playerName=pickRandomName();
 window.onload=function(){var nd=document.getElementById("name-display");if(nd)nd.textContent=playerName;};
+
+function toggleDevPanel(){const p=document.getElementById("dev-panel");p.style.display=p.style.display==="block"?"none":"block";if(p.style.display==="block")devRefreshStats()}
+document.addEventListener("keydown",e=>{if(e.key==="`"||e.key==="~"){e.preventDefault();toggleDevPanel()}});
+function devRefreshStats(){if(!gameState||!gameState.character)return;const cont=document.getElementById("dev-stats");let h="";for(const s of STAT_NAMES){const v=gameState.character[s];const max=s==="成绩水平"?150:100;const min=(s==="班级关系"||s==="爱情进展")?-100:0;h+=`<div class="dev-row"><label>${STAT_EMOJI[s]||""} ${s}</label><input type="range" min="${min}" max="${max}" value="${v}" oninput="devSetStat('${s}',this.value)" id="dev-range-${s}"><input type="number" min="${min}" max="${max}" value="${v}" style="width:45px;font-size:10px;" onchange="devSetStat('${s}',this.value)" id="dev-num-${s}"></div>`}cont.innerHTML=h;const mc=document.getElementById("dev-map-count");if(mc)mc.value=gameState.map_count;const dp=document.getElementById("dev-progress");if(dp)dp.value=gameState.progress;const dpm=document.getElementById("dev-progress-max");if(dpm)dpm.value=gameState.progress_max}
+function devSetStat(n,v){if(!gameState)return;const x=parseInt(v);gameState.character[n]=clampStat(x,n);document.getElementById("dev-range-"+n).value=gameState.character[n];document.getElementById("dev-num-"+n).value=gameState.character[n];render()}
+function devSetAllCells(){const t=document.getElementById("dev-cell-type").value;for(const[k,c]of Object.entries(gameState.map_data)){if(c.revealed&&c.type!=="入学"&&c.type!=="放假"){if(t==="时光奇遇"){c.type="奇遇";c._timeReverse=true}else if(t==="小长假"){c.type="小长假";c._timeReverse=false}else{c.type=t;c._timeReverse=false}}}gameState.message="🔧 已应用: "+t;render()}
+function devRevealAll(){for(const[k,c]of Object.entries(gameState.map_data))c.revealed=true;gameState.message="🔧 已揭示";render()}
+function devJumpMap(){const t=parseInt(document.getElementById("dev-map-count").value);if(t===gameState.map_count)return;saveMapSnapshot(gameState);const prevC=t%2===0?gameState.connections:null;const m=generateMap(t,t%2===0?gameState.map_data:null,prevC);gameState.map_data=m.mapData;gameState.connections=m.conn;gameState.grid_size=m.gridSize;gameState.player_pos=[Math.floor(m.gridSize/2),Math.floor(m.gridSize/2)];gameState.progress=0;gameState.progress_max=getProgressMax(t);gameState.map_count=t;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;gameState.critical_stats=[];gameState.in_exam_prep=false;gameState.in_gaokao_prep=false;gameState.message="🔧 跳转地图"+t;render();devRefreshStats()}
+function devSetProgress(){const v=parseInt(document.getElementById("dev-progress").value);const m=parseInt(document.getElementById("dev-progress-max").value)||gameState.progress_max;gameState.progress_max=m;gameState.progress=Math.max(0,Math.min(v,m));gameState.message="🔧 步数:"+gameState.progress+"/"+gameState.progress_max;render()}
+function devTriggerExam(){gameState.in_exam_prep=true;gameState.in_gaokao_prep=false;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;gameState.message="🔧 触发期末";render()}
+function devTriggerGaokao(){gameState.in_gaokao_prep=true;gameState.in_exam_prep=false;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;gameState.message="🔧 触发高考";render()}
+function devFullProgress(){gameState.progress=gameState.progress_max-1;gameState.message="🔧 进度:"+gameState.progress+"/"+gameState.progress_max;render()}
+function devTriggerTimeReverse(){if(!gameState)return;gameState.progress=Math.max(0,gameState.progress-3);gameState.message="⏳ 时光倒流：步数回退3格（当前"+gameState.progress+"/"+gameState.progress_max+"）";render()}
+function devTriggerHoliday(){if(!gameState)return;enterHoliday();gameState.message="🏖️ 开发者触发生成小长假";render()}
+function devResetCritical(){gameState.critical_stats=[];for(const s of STAT_NAMES){if(gameState.character[s]<=getStatMin(s))gameState.character[s]=getStatMin(s)+5}gameState.message="🔧 危急已清除";render();devRefreshStats()}
+function devResetGame(){if(!confirm("重置?"))return;gameState=initGameState();document.getElementById("dev-panel").style.display="none";render();devRefreshStats()}
+function devEnding(type){if(!gameState)return;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;gameState.game_over=true;gameState.bad_ending=null;gameState.fusion=false;const c=gameState.character;const gaokaoSet=["金榜题名","问心无愧","青春无悔","阳光少年","天道酬勤","多彩青春","平凡之路","重新出发","痴情一世","精神危机","科研之星","跃入人海"];const badSet={"学业崩溃":"📉【学业崩溃】\n你的成绩一落千丈……","机能溃败":"🏥【机能溃败】\n长期的透支终于让你的身体撑不住了……","精神坍塌":"💔【精神坍塌】\n巨大的压力终于压垮了你……","厌学弃学":"😞【厌学弃学】\n你对学习彻底失去了兴趣……","情伤难自抑":"💔【情伤难自抑】\n你陷在感情的漩涡中无法自拔……","众叛亲离":"😢【众叛亲离】\n你在班级中彻底被孤立了……","退学!闯荡江湖":"🚪【退学！闯荡江湖】\n青春不只有高考一条路……","人生是旷野":"🌄【人生是旷野】\n不是所有人都要走同一条路……","弃考·逃离考场":"🏃【弃考·逃离考场】\n你在抵达考场的前一刻转身跑向了车站……","意外·错过高考":"😱【意外·错过高考】\n你错过了人生最重要的一场考试……"};if(gaokaoSet.includes(type)){if(type==="金榜题名"){c["成绩水平"]=150;c["精神状态"]=10;c["学习状态"]=70}else if(type==="问心无愧"){c["成绩水平"]=120;c["学习状态"]=70;c["精神状态"]=10}else if(type==="青春无悔"){c["爱情进展"]=60;c["成绩水平"]=100;c["学习状态"]=80}else if(type==="阳光少年"){c["体能水平"]=80;c["成绩水平"]=20;c["学习状态"]=20}else if(type==="天道酬勤"){c["成绩水平"]=100;c["学习状态"]=80}else if(type==="多彩青春"){c["精神状态"]=60;c["班级关系"]=60}else if(type==="平凡之路"){c["成绩水平"]=80;c["学习状态"]=30}else if(type==="重新出发"){c["成绩水平"]=20;c["学习状态"]=80}else if(type==="痴情一世"){c["爱情进展"]=70;c["成绩水平"]=60;c["学习状态"]=20}else if(type==="精神危机"){c["精神状态"]=20}else if(type==="科研之星"){c["成绩水平"]=110;c["学习状态"]=70}else if(type==="跃入人海"){c["成绩水平"]=30;c["学习状态"]=20}const r=doGaokao(c);gameState.ending=r.ending;gameState.fusion=r.fusion;gameState.fusionTitle=r.fusionTitle;gameState.fusionColor=r.fusionColor;gameState.fusionPrefix=r.fusionPrefix}else if(badSet[type]){gameState.bad_ending=badSet[type]}gameState.message="🔧 结局:"+type;showEnding();render()}
+function devFusion(fid){if(!gameState)return;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;gameState.game_over=true;gameState.bad_ending=null;gameState.fusion=false;const c=gameState.character;Object.keys(c).forEach(k=>{c[k]=clampStat(0,k)});if(fid==="golden"){c["精神状态"]=60;c["班级关系"]=60;c["爱情进展"]=60;c["成绩水平"]=150;c["学习状态"]=60}else if(fid==="burn"){c["成绩水平"]=110;c["学习状态"]=70;c["精神状态"]=20}else if(fid==="summer"){c["成绩水平"]=110;c["学习状态"]=31;c["精神状态"]=60;c["班级关系"]=60}else if(fid==="green"){c["爱情进展"]=60;c["成绩水平"]=100;c["学习状态"]=80;c["精神状态"]=60;c["班级关系"]=60;c["体能水平"]=80}else if(fid==="moon"){c["爱情进展"]=60;c["成绩水平"]=100;c["学习状态"]=80;c["精神状态"]=20;c["班级关系"]=60}const r=doGaokao(c);gameState.ending=r.ending;gameState.fusion=r.fusion;gameState.fusionTitle=r.fusionTitle;gameState.fusionColor=r.fusionColor;gameState.fusionPrefix=r.fusionPrefix;gameState.message="🔧 融合:"+fid;showEnding();render()}
 </script>
+<div id="dev-panel">
+<h3>🔧 开发者面板</h3>
+<h4>📊 状态值修改</h4><div id="dev-stats"></div>
+<h4>🗺️ 地图编辑</h4>
+<select id="dev-cell-type"><option value="学习">📚 学习</option><option value="课余">⚽ 课余</option><option value="测验">📝 测验</option><option value="奇遇">🎲 奇遇</option><option value="时光奇遇">⏳ 时光奇遇</option><option value="恋爱">💕 恋爱</option><option value="追梦">✨ 追梦</option><option value="研学">🔬 研学</option><option value="小长假">🏖️ 小长假</option></select>
+<button onclick="devSetAllCells()">应用到全部</button><button onclick="devRevealAll()">揭示全部</button>
+<h4>⏭️ 进度控制</h4>
+<div class="dev-row"><label>地图:</label><select id="dev-map-count" onchange="devJumpMap()"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>
+<div class="dev-row"><label>步数:</label><input type="number" id="dev-progress" min="0" max="20" value="0"><input type="number" id="dev-progress-max" min="1" max="20" value="10"><button onclick="devSetProgress()">设置</button></div>
+<h4>⚡ 快速操作</h4>
+<button onclick="devTriggerExam()">📝 触发期末考试</button>
+<button onclick="devTriggerGaokao()">🏆 触发高考</button>
+<button onclick="devFullProgress()">⏩ 填满进度条</button>
+<button onclick="devTriggerTimeReverse()">⏳ 时光倒流(步数+3)</button>
+<button onclick="devTriggerHoliday()">🏖️ 生成小长假</button>
+<button class="warn" onclick="devResetCritical()">🩹 清除危急</button>
+<button class="danger" onclick="devResetGame()">🔄 完全重置</button>
+<h4>🎯 高考结局</h4>
+<button class="green" onclick="devEnding('金榜题名')">🏆 金榜题名 (s=210,sp≥10)</button>
+<button class="green" onclick="devEnding('问心无愧')">🎯 问心无愧 (s=170,sp≥10)</button>
+<button onclick="devEnding('青春无悔')">💕 青春无悔 (lv≥60,s≥120)</button>
+<button onclick="devEnding('阳光少年')">⚽ 阳光少年 (体≥80)</button>
+<button onclick="devEnding('天道酬勤')">📚 天道酬勤 (s>140)</button>
+<button onclick="devEnding('多彩青春')">🌈 多彩青春 (sp≥60,cl≥60)</button>
+<button onclick="devEnding('平凡之路')">🚶 平凡之路 (s=60~120)</button>
+<button onclick="devEnding('重新出发')">😢 重新出发 (s≤20,st≥80)</button>
+<button onclick="devEnding('痴情一世')">💔 痴情一世 (lv≥70,s≤80)</button>
+<button onclick="devEnding('精神危机')">😰 精神危机 (sp≤20)</button>
+<button onclick="devEnding('科研之星')">🔬 科研之星 (s≥120,st≥70)</button>
+<button class="green" onclick="devEnding('跃入人海')">🎓 跃入人海 (默认)</button>
+<h4>💀 坏结局</h4>
+<button class="danger" onclick="devEnding('学业崩溃')">📉 学业崩溃</button>
+<button class="danger" onclick="devEnding('机能溃败')">🏥 机能溃败</button>
+<button class="danger" onclick="devEnding('精神坍塌')">💔 精神坍塌</button>
+<button class="danger" onclick="devEnding('厌学弃学')">😞 厌学弃学</button>
+<button class="danger" onclick="devEnding('情伤难自抑')">💔 情伤难自抑</button>
+<button class="danger" onclick="devEnding('众叛亲离')">😢 众叛亲离</button>
+<h4>🚪 特殊结局</h4>
+<button class="warn" onclick="devEnding('退学!闯荡江湖')">🚪 退学!闯荡江湖</button>
+<button class="warn" onclick="devEnding('人生是旷野')">🌄 人生是旷野</button>
+<h4>📝 高考特殊</h4>
+<button class="purple" onclick="devEnding('弃考·逃离考场')">🏃 弃考·逃离考场</button>
+<button class="purple" onclick="devEnding('意外·错过高考')">😱 意外·错过高考</button>
+<h4>🌟 融合结局</h4>
+<button class="green" onclick="devFusion('golden')">🌟 致那些金光闪闪的日子</button>
+<button onclick="devFusion('burn')">🫥 致为梦燃烧的你</button>
+<button onclick="devFusion('summer')">🪷 致人生之夏</button>
+<button onclick="devFusion('green')">🌳 致青葱岁月</button>
+<button onclick="devFusion('moon')">🌙 致负重前行的你</button>
+</div>
 </body>
 </html>
 
