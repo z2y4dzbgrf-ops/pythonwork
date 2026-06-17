@@ -20,6 +20,10 @@ body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-co
 .cell.blocked::after{content:"🚫";position:absolute;font-size:13px;pointer-events:none}
 .cell.fog{background:rgba(160,170,190,0.18);color:#7a7a9a;cursor:default;font-size:20px;border:1px dashed rgba(255,255,255,0.12)}
 .cell .icon{font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}.cell .label{font-size:10px;margin-top:2px;opacity:0.85}
+.cell.special{border-radius:14px;border:3px solid rgba(255,215,0,0.5);box-shadow:0 0 24px rgba(255,215,0,0.3);animation:specialGlow 2s infinite}
+.cell.special .icon{font-size:32px}.cell.special .label{font-size:14px;font-weight:bold;margin-top:4px}
+@keyframes specialGlow{0%,100%{box-shadow:0 0 16px rgba(255,215,0,0.3)}50%{box-shadow:0 0 36px rgba(255,215,0,0.7)}}
+@media(max-width:768px){.cell.special .icon{font-size:24px}.cell.special .label{font-size:12px}}
 #info-panel{width:290px;display:flex;flex-direction:column;gap:10px}
 .panel-box{background:rgba(255,255,255,0.06);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)}
 .panel-box h4{font-size:12px;color:#aaa;margin-bottom:6px}
@@ -66,11 +70,34 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
     #info-panel{width:100%}
     .stat-row .stat-name{width:70px}
     #start-screen>div{padding:20px!important}
+    #start-screen h1{font-size:24px!important}
+    #start-screen p[style]{font-size:14px!important}
     #top-row{display:flex;gap:8px}
     #top-row .msg-box{flex:1;order:1}
     #top-row .countdown-box{flex:1;order:2}
     #stats-box .stat-row{display:inline-block;width:48%;vertical-align:top;margin:2px 1%}
     #stats-box .stat-row .stat-name{width:65px}
+    /* 模式选择页 */
+    #mode-select-screen>div>div[style*="flex"]{flex-direction:column!important;align-items:center}
+    #mode-select-screen [id^="mode-"]{min-width:100%!important;max-width:100%!important;margin-bottom:8px}
+    #mode-select-screen h2{font-size:20px!important}
+    /* 考试奖励弹窗 */
+    #exam-bonus-overlay>div{padding:16px!important;max-width:92%!important}
+    /* 弹窗通用 */
+    #narrative-popup-overlay>div,#encounter-popup-overlay>div{padding:16px!important;max-width:92%!important}
+    #modal,#love-popup{padding:14px!important;max-width:95%!important}
+    #ending-box{padding:18px!important;max-width:95%!important}
+    #ending-box h2{font-size:18px!important}
+    #ending-box .ending-text{font-size:12px!important}
+    #guide-overlay>div{padding:16px!important;max-width:95%!important}
+    /* 按钮 */
+    .option-btn{padding:8px 10px!important;font-size:12px!important}
+    #confirm-row button{font-size:12px!important;padding:8px!important}
+    /* 提示 */
+    #message-box{max-height:120px!important;font-size:11px!important}
+    /* 地图细胞 */
+    .cell{font-size:12px}.cell .icon{font-size:16px}.cell .label{font-size:8px}
+    .cell.special .icon{font-size:22px}.cell.special .label{font-size:11px}
 }
 </style>
 </head>
@@ -92,15 +119,56 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <div id="gender-female" onclick="selectGender('female')" style="padding:10px 28px;cursor:pointer;background:rgba(255,255,255,0.05);color:#aaa;font-size:14px;transition:all 0.3s;">♀ 女生</div>
 </div>
 </div>
-<button onclick="startGame()" style="background:linear-gradient(135deg,#4A90E2,#7ED321);color:#fff;padding:12px 40px;font-size:16px;border-radius:12px;border:none;cursor:pointer;margin-top:6px;">✨ 开始游戏</button>
-<div style="margin-top:16px;">
-<span style="color:#888;font-size:11px;">难度：</span>
-<select id="difficulty-select" onchange="gameDifficulty=this.value;updateDiffDesc()" style="background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 8px;font-size:11px;">
-<option value="normal">😊 普通</option>
-<option value="hard">💀 困难</option>
-</select>
-<div id="diff-desc" style="font-size:10px;color:#888;margin-top:3px;">标准规则，无额外惩罚</div>
+<button onclick="showModeSelect()" style="background:linear-gradient(135deg,#4A90E2,#7ED321);color:#fff;padding:12px 40px;font-size:16px;border-radius:12px;border:none;cursor:pointer;margin-top:6px;">✨ 下一步</button>
 </div>
+</div>
+
+<div id="mode-select-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);z-index:310;justify-content:center;align-items:center;overflow-y:auto;padding:20px;">
+<div style="max-width:680px;width:100%;text-align:center;">
+<h2 style="font-size:24px;margin-bottom:8px;">选择游戏模式</h2>
+<p style="color:#888;font-size:12px;margin-bottom:20px;">不同模式有着截然不同的体验，请仔细选择</p>
+<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+<!-- 普通模式 -->
+<div onclick="selectMode('normal')" id="mode-normal" style="flex:1;min-width:180px;max-width:220px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;cursor:pointer;transition:all 0.3s;text-align:left;">
+<h3 style="color:#4A90E2;font-size:16px;margin-bottom:10px;">😊 普通模式</h3>
+<div style="font-size:11px;color:#bbb;line-height:1.7;">
+<p>📖 标准规则，无额外惩罚</p>
+<p>🗺️ 每年共用一张地图，保留进度</p>
+<p>� 步数随年级递增</p>
+<p>📝 期末考试分档检定</p>
+<p>🏖️ 度假3步，门槛随年级提高</p>
+<p>💪 适合初次体验</p>
+</div>
+</div>
+<!-- 困难模式 -->
+<div onclick="selectMode('hard')" id="mode-hard" style="flex:1;min-width:180px;max-width:220px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;cursor:pointer;transition:all 0.3s;text-align:left;">
+<h3 style="color:#e74c3c;font-size:16px;margin-bottom:10px;">💀 困难模式</h3>
+<div style="font-size:11px;color:#bbb;line-height:1.7;">
+<p>⚡ 每步移动扣除精神与成绩</p>
+<p>📉 成绩增益效果削弱</p>
+<p>� 步数与普通模式略有不同</p>
+<p>🗺️ 每年共用一张地图，保留进度</p>
+<p>🏖️ 度假仅2步，门槛更高</p>
+<p>💔 精神过低触发额外惩罚</p>
+<p>🔥 适合挑战自我</p>
+</div>
+</div>
+<!-- 大地图模式 -->
+<div onclick="selectMode('bigmap')" id="mode-bigmap" style="flex:1;min-width:180px;max-width:220px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;cursor:pointer;transition:all 0.3s;text-align:left;">
+<h3 style="color:#2ecc71;font-size:16px;margin-bottom:10px;">🌍 大地图模式</h3>
+<div style="font-size:11px;color:#bbb;line-height:1.7;">
+<p>🗺️ 全学期共用一张超大探索地图</p>
+<p>👣 高三获得更多探索步数</p>
+<p>🏖️ 地图中散落多处假期节点</p>
+<p>⏳ 奇遇中有特殊效果事件</p>
+<p>📝 考试检定逻辑全面改变</p>
+<p>🔄 地图状态跨学期保留</p>
+<p>🌟 适合深度探索</p>
+</div>
+</div>
+</div>
+<button onclick="confirmMode()" id="mode-confirm-btn" style="background:linear-gradient(135deg,#4A90E2,#7ED321);color:#fff;padding:12px 40px;font-size:16px;border-radius:12px;border:none;cursor:pointer;margin-top:20px;opacity:0.4;" disabled>🎮 开始游戏</button>
+<p id="mode-hint" style="color:#888;font-size:11px;margin-top:8px;">请先选择一个模式</p>
 </div>
 </div>
 
@@ -112,7 +180,7 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <h4 id="semester-title">📅 加载中...</h4>
 <button onclick="showGuide()" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,0.08);color:#888;border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;margin-left:4px;">❓ 新手说明</button>
 <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill"></div></div>
-<small><span style="color:#FFD700;font-weight:bold;" id="countdown-num">12</span> <span style="color:#888;">步后进入考试</span></small>
+<small><span style="color:#FFD700;font-weight:bold;" id="countdown-num">12</span> <span style="color:#888;" id="countdown-label">步后进入考试</span></small>
 </div>
 <div class="panel-box msg-box" id="message-box">加载中...</div>
 </div>
@@ -163,14 +231,15 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <h3 style="text-align:center;margin-bottom:12px;">📖 新手说明</h3>
 <div style="font-size:12px;color:#ccc;line-height:1.7;">
 <p><b>🎮 基本玩法：</b>点击地图上已点亮的格子进行探索。每次选择会影响角色状态。倒计时归零后进入期末考试。</p>
-<p><b>📊 状态值：</b>成绩水平(上限150)、爱情进展、体能水平、精神状态、学习状态(上限100)、班级关系(-100~100)。高二起成绩每步-1，高三起-2。</p>
+<p><b>📊 状态值：</b>成绩水平(上限150)、爱情进展、体能水平、精神状态、学习状态(上限100)、班级关系(-100~100)。普通/困难模式高二起每步扣成绩，高三加重。</p>
+<p><b>⚙️ 三种模式：</b>普通(标准规则/标准步数) / 困难(每步衰减+精神惩罚/步数变化) / 大地图(单张9×9超大探索地图/无衰减)。</p>
 <p><b>🚪 离开学校：</b>随时可点击红色按钮退学，触发特殊结局。</p>
 <p><b>💀 坏结局：</b>任一状态(除爱情)触底后，下一步若未提升，立即触发坏结局。</p>
-<p><b>🗺️ 节点类型：</b>学习/课余/测验/奇遇/恋爱/追梦/研学/小长假(高一上/高二上/高三上各一次，需成绩达标)。</p>
-<p><b>🏖️ 小长假：</b>进入3×3迷你地图，3步自由探索，只有课余/学习/恋爱节点。</p>
-<p><b>💕 恋爱：</b>单身时可选表白(有成功率)或守护；成功后进入约会模式。</p>
-<p><b>🎲 奇遇：</b>随机事件，正面/负面/中性，另可选"无所事事"跳过。</p>
-<p><b>🎓 高考：</b>高三下学期进度满后触发，综合所有状态判定最终结局。</p>
+<p><b>🗺️ 节点类型：</b>学习/课余/测验/奇遇/恋爱/追梦/研学/小长假(每年一次，需成绩达标)。</p>
+<p><b>📝 期末考试：</b>根据成绩+学习分档判定，优异/良好可自选额外提升项，较差/极差须选一项扣除。</p>
+<p><b>🎲 奇遇：</b>随机事件，1/3概率出现"无所事事"。大地图模式有概率触发"时光倒流"(步数+3)。</p>
+<p><b>🏖️ 度假：</b>进入3×3迷你地图自由探索(困难模式2步/其余3步)。</p>
+<p><b>🎓 高考：</b>高三下学期进度满后进入高考地图，赴考/逃离/睡过头指向不同结局。</p>
 <p style="color:#888;margin-top:8px;">✨ 你的每一个选择，都会影响青春的方向。享受这段旅程吧！</p>
 </div>
 <button onclick="document.getElementById('guide-overlay').style.display='none'" style="width:100%;margin-top:12px;">知道了</button>
@@ -188,8 +257,12 @@ function fluctuate(v){if(v===0)return 0;const sign=v>0?1:-1;const abs=Math.abs(v
 
 // ==================== 常量配置 ====================
 const TOTAL_MAPS=6;
-const GRID_SIZE_MAP={1:5,2:5,3:7,4:7,5:7,6:9};
-const PROGRESS_MAX_MAP={1:10,2:12,3:14,4:16,5:18,6:20};
+const GRID_SIZE_MAP={1:5,2:5,3:7,4:7,5:7,6:7};
+const GRID_SIZE_BIGMAP=9;
+const PROGRESS_MAX_MAP={1:8,2:8,3:12,4:12,5:15,6:15};
+const PROGRESS_MAX_HARD={1:8,2:8,3:11,4:12,5:15,6:18};
+const PROGRESS_MAX_BIGMAP={1:9,2:9,3:12,4:12,5:12,6:15};
+function getProgressMax(mc){return gameMode==="bigmap"?PROGRESS_MAX_BIGMAP[mc]:gameMode==="hard"?PROGRESS_MAX_HARD[mc]:PROGRESS_MAX_MAP[mc]}
 const SEMESTER_NAMES={1:"高一年级 上学期",2:"高一年级 下学期",3:"高二年级 上学期",4:"高二年级 下学期",5:"高三年级 上学期",6:"高三年级 下学期"};
 const STAT_MAX=100,STAT_MIN=0,CLASS_REL_MIN=-100;
 const GRADE_SCORE_MAX=150;
@@ -198,13 +271,13 @@ const BLOCKABLE_TYPES=new Set(["学习","课余","测验","研学","奇遇"]);
 const STAT_NAMES=["成绩水平","爱情进展","体能水平","精神状态","学习状态","班级关系"];
 const STAT_EMOJI={成绩水平:"📖",爱情进展:"💕",体能水平:"💪",精神状态:"😊",学习状态:"📝",班级关系:"👥"};
 const STAT_FULL={成绩水平:"成绩水平",爱情进展:"爱情进展",体能水平:"体能水平",精神状态:"精神状态",学习状态:"学习状态",班级关系:"班级关系"};
-const CELL_ICONS={入学:"🎓",学习:"📚",课余:"⚽",测验:"📝",恋爱:"💕",追梦:"✨",研学:"🔬",奇遇:"🎲",小长假:"🏖️",放假:"🌴","期末备考":"📚"};
-const CELL_COLORS={入学:"#FFD700",学习:"#4A90E2",课余:"#F5A623",测验:"#E74C3C",恋爱:"#FF6B9D",追梦:"#9013FE",研学:"#1ABC9C",奇遇:"#9B59B6",小长假:"#E67E22",放假:"#2ECC71","期末备考":"#E67E22"};
+const CELL_ICONS={入学:"🎓",学习:"📚",课余:"⚽",测验:"📝",恋爱:"💕",追梦:"✨",研学:"🔬",奇遇:"🎲",小长假:"🏖️",放假:"🌴","期末备考":"📚",高考:"🏆"};
+const CELL_COLORS={入学:"#FFD700",学习:"#4A90E2",课余:"#F5A623",测验:"#E74C3C",恋爱:"#FF6B9D",追梦:"#9013FE",研学:"#1ABC9C",奇遇:"#9B59B6",小长假:"#E67E22",放假:"#2ECC71","期末备考":"#E67E22",高考:"#FFD700"};
 const STAT_COLORS={成绩水平:"#4A90E2",爱情进展:"#FF6B9D",体能水平:"#F5A623",精神状态:"#7ED321",学习状态:"#9013FE",班级关系:"#1ABC9C"};
 const CELL_SIZE=54,CELL_GAP=5;
-function getCellSize(){return window.innerWidth<500?Math.floor((window.innerWidth-40)/Math.max(gameState?.grid_size||5,5))-5:54}
+function getCellSize(){const isSpecial=gameState?.in_exam_prep||gameState?.in_gaokao_prep;const gs=gameState?.grid_size||5;if(window.innerWidth<500){const base=Math.floor((window.innerWidth-40)/Math.max(gs,5))-5;return isSpecial?Math.min(base*2,window.innerWidth-80):base}return isSpecial?108:54}
 
-const CELL_TYPE_CONFIG={入学:{icon:"🎓",color:"#FFD700"},学习:{icon:"📚",color:"#4A90E2"},课余:{icon:"⚽",color:"#F5A623"},测验:{icon:"📝",color:"#E74C3C"},恋爱:{icon:"💕",color:"#FF6B9D"},追梦:{icon:"✨",color:"#9013FE"},研学:{icon:"🔬",color:"#1ABC9C"},奇遇:{icon:"🎲",color:"#9B59B6"},小长假:{icon:"🏖️",color:"#E67E22"},放假:{icon:"🌴",color:"#2ECC71"},"期末备考":{icon:"📚",color:"#E67E22"}};
+const CELL_TYPE_CONFIG={入学:{icon:"🎓",color:"#FFD700"},学习:{icon:"📚",color:"#4A90E2"},课余:{icon:"⚽",color:"#F5A623"},测验:{icon:"📝",color:"#E74C3C"},恋爱:{icon:"💕",color:"#FF6B9D"},追梦:{icon:"✨",color:"#9013FE"},研学:{icon:"🔬",color:"#1ABC9C"},奇遇:{icon:"🎲",color:"#9B59B6"},小长假:{icon:"🏖️",color:"#E67E22"},放假:{icon:"🌴",color:"#2ECC71"},"期末备考":{icon:"📚",color:"#E67E22"},高考:{icon:"🏆",color:"#FFD700"}};
 
 const NODE_DESCRIPTIONS={
     "入学":"崭新的校园，崭新的面孔。你站在校门口深吸一口气——属于你的高中时代，正式开始了。",
@@ -217,6 +290,7 @@ const NODE_DESCRIPTIONS={
     "奇遇":"生活中总有意外的小插曲。有时候是惊喜，有时候是惊吓，但都是青春的一部分。",
     "小长假":"期待已久的假期终于来了！是时候好好放松一下了。",
     "放假":"阳光、沙滩、自由的气息扑面而来。假期的每一天都值得珍惜。",
+    "高考":"人生最重要的考试终于来临。三年的努力凝聚在这一刻，笔尖承载着所有的梦想与汗水。",
 };
 
 const LEARNING_OPTIONS=[
@@ -269,6 +343,7 @@ const EXAM_PREP_OPTIONS=[
     {label:"佛系随缘",desc:"该会的自然会，心态最重要。",成绩水平:0,精神状态:3,_narrative:"你没有给自己太大压力，翻翻笔记，做做错题，该吃吃该睡睡。心态好的人，运气也不会太差。"},
     {label:"彻底摆烂",desc:"反正复习不完，好好休息……",精神状态:5,体能水平:3,_narrative:"你把书一扔，躺在床上刷手机。虽然心里有点不安，但你安慰自己——人生嘛，开心最重要。"},
 ];
+const GAOKAO_PREP_OPTIONS=[]; // 已废弃，改用动态随机池
 const ENCOUNTER_EVENTS=[
     {label:"捡到复习资料",desc:"在图书馆角落捡到一本学霸的笔记！",type:"positive",narrative:"阳光洒在走廊上，今天运气不错！你心情愉悦，感觉做什么都特别顺利。",成绩水平:4,精神状态:2},
     {label:"被老师表扬",desc:"老师在班上点名表扬了你最近的进步。",type:"positive",narrative:"被认可的感觉真好啊。走在校园里连脚步都轻快了几分，今天一定是个好日子。",精神状态:3,班级关系:2},
@@ -295,6 +370,7 @@ let pendingNarrative=null;
 let playerName="";
 let playerGender="male";
 let gameDifficulty="normal";
+let gameMode="normal"; // normal | hard | bigmap
 let partnerName="";
 let nameRerolls=3;
 
@@ -310,7 +386,30 @@ function selectGender(g){
     document.getElementById("gender-female").style.color=g==="female"?"#fff":"#aaa";
 }
 function updateDiffDesc(){
-    document.getElementById("diff-desc").textContent=gameDifficulty==="hard"?"每次移动扣精神/成绩，成绩增益-1，假期门槛+10":"标准规则，无额外惩罚";
+    /* diff-desc now handled by mode select page */
+}
+
+function showModeSelect(){
+    if(!playerName){playerName=pickRandomName();document.getElementById("name-display").textContent=playerName}
+    document.getElementById("start-screen").style.display="none";
+    document.getElementById("mode-select-screen").style.display="flex";
+}
+let selectedMode=null;
+function selectMode(mode){
+    selectedMode=mode;
+    document.querySelectorAll("#mode-select-screen [id^='mode-']").forEach(el=>{el.style.borderColor="rgba(255,255,255,0.12)";el.style.background="rgba(255,255,255,0.05)"});
+    const el=document.getElementById("mode-"+mode);
+    el.style.borderColor=mode==="normal"?"#4A90E2":mode==="hard"?"#e74c3c":"#2ecc71";
+    el.style.background=mode==="normal"?"rgba(74,144,226,0.15)":mode==="hard"?"rgba(231,76,60,0.15)":"rgba(46,204,113,0.15)";
+    const btn=document.getElementById("mode-confirm-btn");
+    btn.style.opacity="1";btn.disabled=false;
+    document.getElementById("mode-hint").style.display="none";
+}
+function confirmMode(){
+    if(!selectedMode)return;
+    gameMode=selectedMode;gameDifficulty=selectedMode==="bigmap"?"normal":selectedMode;
+    document.getElementById("mode-select-screen").style.display="none";
+    startGame();
 }
 
 function startGame(){
@@ -365,34 +464,77 @@ function ensureTypeDiversity(mapData,conn,centerKey){
     }
 }
 
-function generateMap(mapCount){
-    const gridSize=GRID_SIZE_MAP[mapCount],conn=generateConnections(gridSize),mapData={};
+function generateMap(mapCount,prevMapData){
+    const isBigMap=gameMode==="bigmap";
+    const bigGS=GRID_SIZE_BIGMAP;
+    let gridSize;
+    if(isBigMap){
+        gridSize=bigGS;
+        // Reuse map for all semesters
+        if(prevMapData&&Object.keys(prevMapData).length>0){
+            // Reset blocked but keep revealed/entered
+            for(const[k,cell]of Object.entries(prevMapData)){
+                if(cell.blocked)cell.blocked=false;
+            }
+            // Regenerate connections if needed
+            const conn=generateConnections(gridSize);
+            const cx=Math.floor(gridSize/2),cy=Math.floor(gridSize/2);
+            const centerKey=`${cx},${cy}`;
+            if(!prevMapData[centerKey])prevMapData[centerKey]={type:"入学",revealed:true,entered:true,blocked:false};
+            for(const nk of conn[centerKey]){if(prevMapData[nk])prevMapData[nk].revealed=true}
+            return {mapData:prevMapData,conn,gridSize};
+        }
+    }else if(mapCount%2===0&&mapCount>1){
+        // Normal/Hard: Even maps reuse the previous odd map
+        gridSize=GRID_SIZE_MAP[mapCount-1];
+        if(prevMapData&&Object.keys(prevMapData).length>0){
+            for(const[k,cell]of Object.entries(prevMapData)){if(cell.blocked)cell.blocked=false}
+            const conn=generateConnections(gridSize);
+            const cx=Math.floor(gridSize/2),cy=Math.floor(gridSize/2);
+            const centerKey=`${cx},${cy}`;
+            if(!prevMapData[centerKey])prevMapData[centerKey]={type:"入学",revealed:true,entered:true,blocked:false};
+            for(const nk of conn[centerKey]){if(prevMapData[nk])prevMapData[nk].revealed=true}
+            return {mapData:prevMapData,conn,gridSize};
+        }
+    }else{
+        gridSize=GRID_SIZE_MAP[mapCount];
+    }
+
+    const conn=generateConnections(gridSize),mapData={};
     const cx=Math.floor(gridSize/2),cy=Math.floor(gridSize/2),centerKey=`${cx},${cy}`;
     const allCells=[];for(let x=0;x<gridSize;x++)for(let y=0;y<gridSize;y++)if(x!==cx||y!==cy)allCells.push([x,y]);
     shuffle(allCells);
     mapData[centerKey]={type:"入学",revealed:true,entered:true,blocked:false};
 
-    // 恋爱：距中心≥3步，且不是直接邻居
     const centerNeighbors=new Set(conn[centerKey]);
+    // 恋爱：距中心≥3步
     let loveCell=null;
     for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){loveCell=cell;break}}
     if(!loveCell)loveCell=allCells.shift();else allCells.splice(allCells.indexOf(loveCell),1);
     mapData[`${loveCell[0]},${loveCell[1]}`]={type:"恋爱",revealed:false,entered:false,blocked:false};
 
-    // 研学：距中心≥3步，且不是直接邻居
+    // 研学：距中心≥3步
     let researchCell=null;
     for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){researchCell=cell;break}}
     if(!researchCell)researchCell=allCells.shift();else allCells.splice(allCells.indexOf(researchCell),1);
     mapData[`${researchCell[0]},${researchCell[1]}`]={type:"研学",revealed:false,entered:false,blocked:false};
 
-    // 追梦：3~5个，距中心≥3步，且不是直接邻居
+    // 追梦：1个
     const dreamCount=1,dreamCells=[];
     for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){dreamCells.push(cell);if(dreamCells.length>=dreamCount)break}}
     while(dreamCells.length<dreamCount&&allCells.length>0)dreamCells.push(allCells.shift());
     for(const dc of dreamCells){const idx=allCells.indexOf(dc);if(idx>=0)allCells.splice(idx,1);mapData[`${dc[0]},${dc[1]}`]={type:"追梦",revealed:false,entered:false,blocked:false}}
 
-    // 小长假：地图2/3/5各一次，曼哈顿距离≥2
-    if(mapCount===2||mapCount===3||mapCount===5){
+    // 小长假
+    if(isBigMap){
+        // BigMap: 3 holiday nodes, distributed on both sides of center
+        const holidayCells=[];
+        for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;const md=Math.abs(cell[0]-cx)+Math.abs(cell[1]-cy);if(md>=2&&!centerNeighbors.has(ck)){holidayCells.push(cell);if(holidayCells.length>=3)break}}
+        for(const hc of holidayCells){
+            allCells.splice(allCells.indexOf(hc),1);
+            mapData[`${hc[0]},${hc[1]}`]={type:"小长假",revealed:false,entered:false,blocked:false};
+        }
+    }else if(mapCount===1||mapCount===3||mapCount===5){
         let holidayCell=null;
         for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;const md=Math.abs(cell[0]-cx)+Math.abs(cell[1]-cy);if(md>=2&&!centerNeighbors.has(ck)){holidayCell=cell;break}}
         if(holidayCell){allCells.splice(allCells.indexOf(holidayCell),1);mapData[`${holidayCell[0]},${holidayCell[1]}`]={type:"小长假",revealed:false,entered:false,blocked:false}}
@@ -408,13 +550,10 @@ function generateMap(mapCount){
 
     ensureTypeDiversity(mapData,conn,centerKey);
     for(const nk of conn[centerKey]){if(mapData[nk])mapData[nk].revealed=true}
-    // 确保初始节点至少连通一个学习类节点
     let hasStudy=false;for(const nk of conn[centerKey]){if(mapData[nk]&&mapData[nk].type==="学习"){hasStudy=true;break}}
     if(!hasStudy){for(const nk of conn[centerKey]){if(mapData[nk]&&!REENTERABLE_TYPES.has(mapData[nk].type)&&mapData[nk].type!=="入学"){mapData[nk].type="学习";break}}}
     return {mapData,conn,gridSize};
-}
-
-// ==================== 角色逻辑 ====================
+}// ==================== 角色逻辑 ====================
 function applyEffects(char,effects){for(const s of STAT_NAMES){if(effects[s]!==undefined)char[s]=clampStat(char[s]+effects[s],s)}}
 function applyClassRelEffects(char){
     const cr=char["班级关系"];let m="";
@@ -427,7 +566,7 @@ function applyClassRelEffects(char){
 }
 function applyHardSpiritPenalty(char){
     // 困难模式：精神<45时，随机扣2个非精神状态各5点，按数值加权
-    if(gameDifficulty!=="hard"||char["精神状态"]>=45)return;
+    if(gameMode!=="hard"||char["精神状态"]>=45)return;
     const targets=STAT_NAMES.filter(s=>s!=="精神状态").map(s=>({name:s,val:char[s]}));
     targets.sort((a,b)=>b.val-a.val);
     const weights=[0.50,0.20,0.15,0.10,0.05];
@@ -443,8 +582,8 @@ function applyHardSpiritPenalty(char){
 }
 function applyGradeDecay(char,mapCount,diff){
     const hard=diff==="hard";
-    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?4:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?5:0),"精神状态")}
-    else if(mapCount>=3){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:1),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?3:0),"精神状态")}
+    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?4:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?3:0),"精神状态")}
+    else if(mapCount>=3){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:1),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?2:0),"精神状态")}
     else if(hard){char["成绩水平"]=clampStat(char["成绩水平"]-1,"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-1,"精神状态")}
 }
 function getLoveMultiplier(char){const cr=char["班级关系"];if(cr>=75)return 1.3;if(cr>=50)return 1.15;return 1.0}
@@ -457,8 +596,19 @@ function handleConfession(char){
 function checkLoveZero(char){if(char["爱情进展"]<=0&&char["romance_state"]==="dating"){char["romance_state"]="single";char["爱情进展"]=0;return"💔 你们的感情走到了尽头……Ta 不喜欢你了，这段爱情结束了。"}if(char["爱情进展"]<=0)char["爱情进展"]=0;return null}
 
 // ==================== 考试系统 ====================
-function doExam(char){const cv=char["成绩水平"]+char["学习状态"];let m,ef;if(cv>=140){m="📊 期末测验成绩优异！年级名列前茅。";ef={成绩水平:4,学习状态:3,精神状态:2,班级关系:2}}else if(cv>=100){m="📊 发挥不错，稳居中上游。";ef={成绩水平:1,学习状态:2,精神状态:0,班级关系:1}}else if(cv>=60){m="📊 勉强过关，有些科目需加把劲。";ef={成绩水平:0,学习状态:-1,精神状态:-1,班级关系:0}}else{m="📊 考砸了……心里很不是滋味。";ef={成绩水平:-3,学习状态:-3,精神状态:-3,班级关系:-2}};applyEffects(char,ef);return m}
-function doGaokao(char){
+function doExam(char){
+    const cv=char["成绩水平"]+char["学习状态"];
+    if(cv>=200)return {tier:"excellent",msg:"📊 期末测验成绩优异！年级名列前茅。",
+        effects:{精神状态:10},bonus:["爱情进展","体能水平","班级关系"],bonusVal:5,bonusLabel:"表现优异，额外提升"};
+    if(cv>=150)return {tier:"good",msg:"📊 发挥不错，稳居中上游。",
+        effects:{精神状态:6},bonus:["爱情进展","体能水平","班级关系"],bonusVal:3,bonusLabel:"表现良好，额外提升"};
+    if(cv>=100)return {tier:"ok",msg:"📊 勉强过关，还有进步空间。",
+        effects:{},randomBoost:2};
+    if(cv>=50)return {tier:"bad",msg:"📊 考得不太理想……被强制安排补习。",
+        effects:{成绩水平:10},penalty:["爱情进展","体能水平","精神状态"],penaltyVal:5,penaltyLabel:"补习代价，选择扣除"};
+    return {tier:"worst",msg:"📊 考砸了……被强制安排补习。",
+        effects:{成绩水平:15},penalty:["爱情进展","体能水平","精神状态"],penaltyVal:8,penaltyLabel:"补习代价，选择扣除"};
+}function doGaokao(char){
     const c=char,s=c["成绩水平"]+c["学习状态"];
     const endings=[];
     // [1] 金榜题名: score≥210, spirit≥10, 互斥多个
@@ -473,8 +623,8 @@ function doGaokao(char){
     if(s>140&&!endings.some(e=>["金榜题名","问心无愧","平凡之路","阳光少年","重新出发","痴情一世"].includes(e.id)))endings.push({id:"天道酬勤",icon:"📚",text:"扎实的努力换来了一所不错的大学。人生路还长，继续加油！"});
     // [6] 多彩青春: spirit≥60, classRel≥60
     if(c["精神状态"]>=60&&c["班级关系"]>=60)endings.push({id:"多彩青春",icon:"🌈",text:"高中生活丰富多彩，你收获了友谊和对生活的热爱，或许还有一丝年少纯真的感情。"});
-    // [7] 平凡之路: score≥60, 互斥
-    if(s>=60&&!endings.some(e=>["天道酬勤","阳光少年","金榜题名","问心无愧","重新出发"].includes(e.id)))endings.push({id:"平凡之路",icon:"🚶",text:"成绩平平进入普通院校，但人生不只考试，还有无限可能。"});
+    // [7] 平凡之路: score≥60 且 score<120, 互斥
+    if(s>=60&&s<120&&!endings.some(e=>["天道酬勤","阳光少年","金榜题名","问心无愧","重新出发"].includes(e.id)))endings.push({id:"平凡之路",icon:"🚶",text:"成绩平平进入普通院校，但人生不只考试，还有无限可能。"});
     // [8] 重新出发: score≤20, study≥80, 互斥
     if(s<=20&&c["学习状态"]>=80&&!endings.some(e=>["金榜题名","阳光少年","天道酬勤","问心无愧","平凡之路"].includes(e.id)))endings.push({id:"重新出发",icon:"😢",text:"高考结果不尽如人意，你带着一份不甘，决定从头来过。"});
     // [9] 痴情一世: love≥70, score≤80, 互斥
@@ -483,20 +633,55 @@ function doGaokao(char){
     if(c["精神状态"]<=20)endings.push({id:"精神危机",icon:"😰",text:"你终于熬过了高中三年无尽的刷题和考试。但无数个挑灯夜战的凌晨，朦胧早起的清晨，那些被试卷填满的日子——它们在你心里留下了太深的刻痕。"});
     // [11] 科研之星: score≥120, study≥70
     if(s>=120&&c["学习状态"]>=70)endings.push({id:"科研之星",icon:"🔬",text:"你对知识的热爱超越了分数本身。在科研的路上，你找到了属于自己的方向，未来可期。"});
-    // 无结局则默认
-    if(endings.length===0)endings.push({id:"默认",icon:"🎓",text:"高中三年画上了句号。你站在人生的十字路口，前方是未知的旷野，也是无限的可能。"});
+    // 无结局则默认 → 跃入人海
+    if(endings.length===0)endings.push({id:"跃入人海",icon:"🎓",text:"高中三年画上了句号。你站在人生的十字路口，前方是未知的旷野，也是无限的可能。"});
     // 融合或单一
     if(endings.length===1)return {ending:endings[0].icon+"【"+endings[0].id+"】\n"+endings[0].text,tags:[endings[0].id]};
-    const title="🌟 融合结局";
+    // 融合结局系统：根据标签决定标题和前缀文本
+    const tags=endings.map(e=>e.id);
+    const hasTag=t=>tags.includes(t);
+    let fusionTitle="",fusionPrefix="",fusionColor="#FFD700";
+    // 组合1: 多彩青春 + 青春无悔 + (金榜题名|问心无愧|阳光少年)
+    if(hasTag("多彩青春")&&hasTag("青春无悔")&&(hasTag("金榜题名")||hasTag("问心无愧")||hasTag("阳光少年"))){
+        fusionTitle="🌟 致那些金光闪闪的日子";
+        fusionPrefix="那是最好的时光——有梦想，有彼此，有不怕输的勇气。青春不是一段年龄，而是一种状态。";
+        fusionColor="#FFDF00";
+    }
+    // 组合2: 科研之星 + 精神危机
+    else if(hasTag("科研之星")&&hasTag("精神危机")){
+        fusionTitle="🫥 致为梦燃烧的你";
+        fusionPrefix="你把最好的自己燃在了实验室的灯光下。那些无人知晓的深夜，终将成为你最亮的勋章。";
+        fusionColor="#CC6600";
+    }
+    // 组合3: 天道酬勤 + 多彩青春
+    else if(hasTag("天道酬勤")&&hasTag("多彩青春")){
+        fusionTitle="🪷 致人生之夏";
+        fusionPrefix="汗水浇灌的夏天终于结了果。回头看，那些平凡的日子，原来都是闪闪发光的宝藏。";
+        fusionColor="#FFA500";
+    }
+    // 组合4: 多个结局 + 未触发精神危机
+    else if(!hasTag("精神危机")){
+        fusionTitle="🌳 致青葱岁月";
+        fusionPrefix="三年很短，回忆很长。你带着这些青涩的故事走向更远的地方，风里都是夏天的味道。";
+        fusionColor="#32CD32";
+    }
+    // 组合5: 多个结局 + 触发精神危机
+    else{
+        fusionTitle="🌙 致负重前行的你";
+        fusionPrefix="那些压不垮你的，终将使你更强大。就算走得比别人慢一点，你也在自己的时区里闪闪发光。";
+        fusionColor="#1E90FF";
+    }
+    const tagStr=endings.map(e=>e.icon+e.id).join(" ");
     const texts=endings.map(e=>e.text).join("\n\n");
-    const tags=endings.map(e=>e.icon+e.id).join(" ");
-    return {ending:title+"\n\n"+texts+"\n\n🏷️ "+tags,tags:endings.map(e=>e.id),fusion:true};
+    const fullEnding=texts+"\n\n🏷️ "+tagStr;
+    return {ending:fullEnding,tags:tags,fusion:true,fusionTitle,fusionPrefix,fusionColor};
 }
 
 // ==================== 游戏状态管理 ====================
 function initGameState(){
-    const{mapData,conn,gridSize}=generateMap(1);
-    return{player_pos:[Math.floor(gridSize/2),Math.floor(gridSize/2)],progress:0,progress_max:PROGRESS_MAX_MAP[1],map_count:1,grid_size:gridSize,map_data:mapData,connections:conn,character:initCharacter(),game_over:false,message:"你踏入了重点高中的校门，新的高中生活开始了！点击已点亮的格子来探索吧。",pending_cell:null,pending_options:null,pending_type:null,exam_result:null,ending:null,bad_ending:null,critical_stats:[],in_exam_prep:false,history:[],current_path:[],holiday:null};
+    const isBigMap=gameMode==="bigmap";
+    const{mapData,conn,gridSize}=generateMap(1,null);
+    return{player_pos:[Math.floor(gridSize/2),Math.floor(gridSize/2)],progress:0,progress_max:getProgressMax(1),map_count:1,grid_size:gridSize,map_data:mapData,connections:conn,character:initCharacter(),game_over:false,message:"你踏入了重点高中的校门，新的高中生活开始了！点击已点亮的格子来探索吧。",pending_cell:null,pending_options:null,pending_type:null,exam_result:null,ending:null,bad_ending:null,critical_stats:[],in_exam_prep:false,in_gaokao_prep:false,exam_pending:null,history:[],current_path:[],holiday:null};
 }
 function saveMapSnapshot(state){
     const ce=[],tc={},cellMap={};let cr=0;
@@ -513,22 +698,94 @@ function checkBadEnding(state,effects){
     return false;
 }
 function updateCriticalStats(state){for(const s of STAT_NAMES){if(s==="爱情进展")continue;if(state.character[s]<=getStatMin(s)&&!state.critical_stats.includes(s))state.critical_stats.push(s)}}
-function transitionToNextMap(state){const nm=state.map_count+1;saveMapSnapshot(state);const{mapData,conn,gridSize}=generateMap(nm);state.map_data=mapData;state.connections=conn;state.grid_size=gridSize;state.player_pos=[Math.floor(gridSize/2),Math.floor(gridSize/2)];state.progress=0;state.progress_max=PROGRESS_MAX_MAP[nm];state.map_count=nm;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.critical_stats=[];state.in_exam_prep=false}
+function transitionToNextMap(state){const nm=state.map_count+1;saveMapSnapshot(state);const isBigMap=gameMode==="bigmap";const prevData=(nm%2===0&&!isBigMap)?state.map_data:null;const{mapData,conn,gridSize}=generateMap(nm,isBigMap?state.map_data:prevData);state.map_data=mapData;state.connections=conn;state.grid_size=gridSize;state.player_pos=[Math.floor(gridSize/2),Math.floor(gridSize/2)];state.progress=0;state.progress_max=getProgressMax(nm);state.map_count=nm;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.critical_stats=[];state.in_exam_prep=false;state.exam_result=null;if(!isBigMap&&nm===3){state.message+=`\n\n⚠️ 进入高二，每步扣除成绩-1（困难-3）和精神-0（困难-2）。本学期共${getProgressMax(nm)}步。`}if(!isBigMap&&nm===5){state.message+=`\n\n⚠️ 进入高三，每步扣除成绩-2（困难-4）和精神-0（困难-3）。本学期共${getProgressMax(nm)}步。`}}
 function checkProgressFull(state){
     if(state.progress<state.progress_max)return false;
-    if(state.in_exam_prep){const m=doExam(state.character);state.exam_result=m;state.in_exam_prep=false;state.message=m+`\n\n新学期开始了——${SEMESTER_NAMES[state.map_count+1]||""}`;transitionToNextMap(state);return false}
+    if(state.in_exam_prep){const result=doExam(state.character);if(typeof result==="string"){state.exam_result=result;state.in_exam_prep=false;state.message=result+`\n\n新学期开始了——${SEMESTER_NAMES[state.map_count+1]||""}`;transitionToNextMap(state);return false}state.exam_pending=result;state.message=result.msg;return false}
+    if(state.in_gaokao_prep){saveMapSnapshot(state);const result=doGaokao(state.character);state.ending=typeof result==="string"?result:result.ending;state.fusion=result.fusion||false;state.tags=result.tags||[];state.game_over=true;state.in_gaokao_prep=false;state.message="🎓 高考结束！";return true}
     if(state.map_count<TOTAL_MAPS){state.in_exam_prep=true;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.message="📚 期末考试临近！你需要为即将到来的考试做好备考准备。";return false}
-    else{saveMapSnapshot(state);const result=doGaokao(state.character);state.ending=typeof result==="string"?result:result.ending;state.fusion=result.fusion||false;state.tags=result.tags||[];state.game_over=true;state.message="🎓 高考结束！";return true}
+    else{state.in_gaokao_prep=true;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.message="🏆 高考来临！这是最后的战役，做出你的选择吧。";return false}
 }
 
-// ==================== 游戏逻辑 ====================
+
+// ==================== 考试奖励/惩罚弹窗 ====================
+function showExamBonusModal(result){
+    const overlay=document.createElement("div");
+    overlay.id="exam-bonus-overlay";
+    overlay.style.cssText="display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:160;justify-content:center;align-items:center;";
+    let html=`<div style="background:#1e1e3a;border:2px solid #E67E22;border-radius:16px;padding:24px;max-width:400px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 0 40px rgba(230,126,34,0.3);text-align:center;">`;
+    html+=`<h3 style="color:#E67E22;margin-bottom:6px;">📊 考试结果</h3>`;
+    html+=`<p style="color:#ddd;font-size:13px;margin-bottom:12px;">${result.msg}</p>`;
+    for(const[s,v]of Object.entries(result.effects||{})){
+        if(v===0)continue;
+        gameState.character[s]=clampStat(gameState.character[s]+v,s);
+        html+=`<div style="color:#2ecc71;font-size:12px;margin:4px 0;">${STAT_EMOJI[s]||""} ${STAT_FULL[s]||s} +${v}</div>`;
+    }
+    if(result.randomBoost){
+        const pool=STAT_NAMES.filter(s=>s!=="成绩水平"&&s!=="爱情进展");
+        const picked=pool[Math.floor(Math.random()*pool.length)];
+        gameState.character[picked]=clampStat(gameState.character[picked]+result.randomBoost,picked);
+        html+=`<div style="color:#2ecc71;font-size:12px;margin:4px 0;">🎲 随机提升: ${STAT_EMOJI[picked]||""} ${STAT_FULL[picked]||picked} +${result.randomBoost}</div>`;
+        html+=`<button onclick="closeExamBonus()" style="margin-top:12px;background:#E67E22;width:100%;">✅ 确认</button>`;
+    }else if(result.bonus){
+        html+=`<p style="color:#FFD700;font-size:12px;margin:10px 0 4px;">${result.bonusLabel}:</p>`;
+        for(const s of result.bonus){
+            html+=`<button onclick="pickExamBonus('${s}',${result.bonusVal})" style="margin:4px;background:rgba(255,215,0,0.2);border:1px solid rgba(255,215,0,0.4);font-size:12px;">${STAT_EMOJI[s]||""} ${STAT_FULL[s]||s} +${result.bonusVal}</button>`;
+        }
+    }else if(result.penalty){
+        html+=`<p style="color:#e74c3c;font-size:12px;margin:10px 0 4px;">${result.penaltyLabel}:</p>`;
+        for(const s of result.penalty){
+            html+=`<button onclick="pickExamPenalty('${s}',${result.penaltyVal})" style="margin:4px;background:rgba(231,76,60,0.2);border:1px solid rgba(231,76,60,0.4);font-size:12px;">${STAT_EMOJI[s]||""} ${STAT_FULL[s]||s} -${result.penaltyVal}</button>`;
+        }
+    }
+    html+=`</div>`;
+    overlay.innerHTML=html;
+    document.body.appendChild(overlay);
+}
+
+function pickExamBonus(stat,val){
+    gameState.character[stat]=clampStat(gameState.character[stat]+val,stat);
+    closeExamBonus();
+}
+function pickExamPenalty(stat,val){
+    gameState.character[stat]=clampStat(gameState.character[stat]-val,stat);
+    closeExamBonus();
+}
+function closeExamBonus(){
+    const el=document.getElementById("exam-bonus-overlay");
+    if(el)el.remove();
+    if(gameState.exam_pending){
+        gameState.exam_pending=null;
+        gameState.in_exam_prep=false;
+        gameState.message=(gameState.exam_result||"")+`\n\n新学期开始了——${SEMESTER_NAMES[gameState.map_count+1]||""}`;
+        transitionToNextMap(gameState);
+        render();
+    }
+}
+
+// ==================== 高考动态选项 ====================
+function generateGaokaoOptions(){
+    const r=Math.random();
+    // 2% 概率：睡过头了（单独出现，无其他选项）
+    if(r<0.02){
+        return [{label:"睡过头了",desc:"闹钟没响……你错过了人生最重要的考试。",_gaokao_action:"oversleep",_narrative:"清晨的阳光刺眼地照在脸上，你猛然惊醒——已经开考半小时了。你疯了一样冲出家门，但一切已经来不及了……"}];
+    }
+    // 98% 概率：奔赴考场
+    const opts=[{label:"奔赴考场",desc:"深呼吸，走进考场，为自己而战。",_gaokao_action:"exam",_narrative:"考场钟声敲响的那一刻，你深吸一口气。三年磨一剑，今天就是亮剑的日子。"}];
+    // 40% 概率追加"逃离"选项
+    if(Math.random()<0.40){
+        opts.push({label:"逃离",desc:"站在考场门口，你转身离开了……",_gaokao_action:"flee",_narrative:"你站在考场门口，看着黑压压的人群。心跳越来越快，手心全是汗。最终，你转过身，朝着反方向走去……"});
+    }
+    return opts;
+}
 function getLoveOptions(char){return char.romance_state==="dating"?{type:"恋爱",options:DATING_COMBOS[Math.random()<0.6?0:1]}:{type:"恋爱",options:CONFESSION_OPTIONS}}
 
 // ==================== 小长假系统 ====================
 function generateHolidayMap(){
     const gs=3,conn={},md={};
+    for(let x=0;x<gs;x++)for(let y=0;y<gs;y++)conn[`${x},${y}`]=[];
     for(let x=0;x<gs;x++)for(let y=0;y<gs;y++){
-        const k=`${x},${y}`;conn[k]=[];
+        const k=`${x},${y}`;
         if(x+1<gs){conn[k].push(`${x+1},${y}`);conn[`${x+1},${y}`].push(k)}
         if(y+1<gs){conn[k].push(`${x},${y+1}`);conn[`${x},${y+1}`].push(k)}
     }
@@ -541,34 +798,41 @@ function generateHolidayMap(){
 }
 function enterHoliday(){
     const h=generateHolidayMap();
-    gameState.holiday={saved:{map_data:gameState.map_data,connections:gameState.connections,grid_size:gameState.grid_size,player_pos:[...gameState.player_pos],progress:gameState.progress},steps:0,maxSteps:3};
+    const maxSteps=gameMode==="hard"?2:3;
+    gameState.holiday={saved:{map_data:gameState.map_data,connections:gameState.connections,grid_size:gameState.grid_size,player_pos:[...gameState.player_pos],progress:gameState.progress},steps:0,maxSteps};
     gameState.map_data=h.mapData;gameState.connections=h.connections;gameState.grid_size=h.gridSize;
-    gameState.player_pos=[1,1];gameState.progress=0;gameState.progress_max=3;
-    gameState.message="🏖️ 假期开始！你有3步自由时光，好好享受吧。";
+    gameState.player_pos=[1,1];gameState.progress=0;gameState.progress_max=maxSteps;
+    gameState.message=`🏖️ 假期开始！你有${maxSteps}步自由时光，好好享受吧。`;
 }
 function exitHoliday(){
     if(!gameState.holiday)return;
     const s=gameState.holiday.saved;
     gameState.map_data=s.map_data;gameState.connections=s.connections;gameState.grid_size=s.grid_size;
-    gameState.player_pos=s.player_pos;gameState.progress=s.progress;gameState.progress_max=PROGRESS_MAX_MAP[gameState.map_count];
+    gameState.player_pos=s.player_pos;gameState.progress=s.progress;gameState.progress_max=getProgressMax(gameState.map_count);
     gameState.holiday=null;gameState.message="假期结束，回到了熟悉的校园。";
 }
 
-function getHolidayScoreReq(mapCount,diff){const base=mapCount===2?60:mapCount===3?100:130;return diff==="hard"?base+10:base}
+function getHolidayScoreReq(mapCount,diff){if(gameMode==="bigmap")return 105;const base=mapCount<=2?60:mapCount<=4?100:130;return diff==="hard"?base+10:base}
 
 function enterCell(x,y){
     if(gameState.game_over||gameState.pending_cell!==null)return;
-    // 【BUG修复】期末备考特殊处理 - 不受 map_data 限制
+    // 【BUG修复】期末备考/高考特殊处理 - 不受 map_data 限制
     if(gameState.in_exam_prep){
         const preOpts=EXAM_PREP_OPTIONS.map(o=>{const fl={};for(const s of STAT_NAMES){if(o[s]!==undefined)fl[s]=fluctuate(o[s])}return{...o,_fluctuated:fl}});
         gameState.pending_cell=[0,0];gameState.pending_options=preOpts;gameState.pending_type="期末备考";
         showModal("期末备考",preOpts);render();return;
     }
+    if(gameState.in_gaokao_prep){
+        const gkOpts=generateGaokaoOptions();
+        gameState.pending_cell=[0,0];gameState.pending_options=gkOpts;gameState.pending_type="高考";
+        showModal("高考",gkOpts);render();return;
+    }
     const key=`${x},${y}`,cell=gameState.map_data[key];
     if(!cell)return;if(!cell.revealed)return alert("该区域尚未点亮");if(cell.blocked)return alert("该区域已被封锁");
+    let typeLabel,options;
     // 小长假：选项节点
     if(cell.type==="小长假"){
-        const req=getHolidayScoreReq(gameState.map_count);
+        const req=getHolidayScoreReq(gameState.map_count,gameDifficulty);
         const canGo=gameState.character["成绩水平"]>=req;
         typeLabel="小长假";options=[
             {label:`去度假(需成绩≥${req})`,desc:canGo?"享受难得的假期时光！":"成绩不足，无法度假",_is_holiday:true,_disabled:!canGo,成绩水平:0,精神状态:3,_narrative:"你收拾好行李，奔向阳光和海滩。假期虽短，但足够让人满血复活。"},
@@ -578,10 +842,11 @@ function enterCell(x,y){
         gameState.pending_cell=[x,y];gameState.pending_options=options;gameState.pending_type=typeLabel;
         showModal(typeLabel,options);render();return;
     }
-    // 放假中心格
+    // 放假中心格（假期地图起点）
+    if(cell.type==="放假"){if(cell.entered&&x===gameState.player_pos[0]&&y===gameState.player_pos[1]){gameState.message="你站在假期的起点，享受难得的自由时光吧！";render();return}cell.entered=true;gameState.player_pos=[x,y];revealConnected(gameState,x,y);gameState.message="阳光、沙滩、自由——假期开始！";render();return}
+    // 入学中心格
     if(cell.type==="入学"){if(cell.entered&&x===gameState.player_pos[0]&&y===gameState.player_pos[1])return;cell.entered=true;gameState.player_pos=[x,y];revealConnected(gameState,x,y);gameState.message="你站在校门口，一切从这里开始。";render();return}
     if(!REENTERABLE_TYPES.has(cell.type)&&cell.entered&&BLOCKABLE_TYPES.has(cell.type))return alert("该区域已被封锁");
-    let typeLabel,options;
     if(cell.type==="恋爱"){({type:typeLabel,options}=getLoveOptions(gameState.character))}
     else if(cell.type==="学习"){typeLabel="学习";options=LEARNING_OPTIONS}
     else if(cell.type==="课余"){typeLabel="课余";options=getExtracurricularOptions()}
@@ -592,7 +857,7 @@ function enterCell(x,y){
         typeLabel="奇遇";
         const pool=[...ENCOUNTER_EVENTS];shuffle(pool);
         options=[pool[0]];
-        if(Math.random()<0.5)options.push({label:"无所事事",desc:"发发呆，什么也不做，让时间慢慢流过。",type:"neutral",narrative:"你靠在窗边，看着云朵慢慢飘过。有时候什么都不做，也是一种奢侈。人生不需要时时刻刻都在奔跑。",成绩水平:0,学习状态:0,体能水平:0,精神状态:1,爱情进展:0,班级关系:0,_no_fluctuate:true});
+        if(Math.random()<1/3)options.push({label:"无所事事",desc:"发发呆，什么也不做，让时间慢慢流过。",type:"neutral",narrative:"你靠在窗边，看着云朵慢慢飘过。有时候什么都不做，也是一种奢侈。人生不需要时时刻刻都在奔跑。",成绩水平:0,学习状态:0,体能水平:0,精神状态:1,爱情进展:0,班级关系:0,_no_fluctuate:true});
     }
     else return;
     // 【Bug修复】进入节点瞬间固化所有选项的随机波动值
@@ -645,9 +910,10 @@ function confirmChoice(){
     }
     if(checkBadEnding(gameState,adjEff)){gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;render();return}
     // 困难模式：成绩增量-1
-    if(gameDifficulty==="hard"&&adjEff["成绩水平"]&&adjEff["成绩水平"]>0)adjEff["成绩水平"]=Math.max(0,adjEff["成绩水平"]-1);
+    if(gameMode==="hard"&&adjEff["成绩水平"]&&adjEff["成绩水平"]>0)adjEff["成绩水平"]=Math.max(0,adjEff["成绩水平"]-1);
     // 小长假度假选项
     if(chosen._is_holiday){
+        if(cell){cell.entered=true;cell.blocked=true}
         gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
         enterHoliday();render();return;
     }
@@ -659,9 +925,54 @@ function confirmChoice(){
     }
     applyEffects(gameState.character,adjEff);
     applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);applyHardSpiritPenalty(gameState.character);
-    applyHardSpiritPenalty(gameState.character);
     const classMsg=applyClassRelEffects(gameState.character);
-    if(ctype==="期末备考"){gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;if(classMsg)gameState.message+="\n"+classMsg;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;checkProgressFull(gameState);render();return}
+    // 假期步数递增（必须在叙事弹窗之前）
+    if(gameState.holiday){gameState.holiday.steps++;if(gameState.holiday.steps>=gameState.holiday.maxSteps){exitHoliday()}}
+    if(ctype==="期末备考"){
+    gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;
+    if(classMsg)gameState.message+="\n"+classMsg;
+    // Apply exam prep effects + trigger doExam
+    applyEffects(gameState.character,adjEff);
+    const examResult=doExam(gameState.character);
+    if(typeof examResult==="string"){
+        gameState.exam_result=examResult;gameState.in_exam_prep=false;
+        gameState.message=examResult+`\n\n新学期开始了——${SEMESTER_NAMES[gameState.map_count+1]||""}`;
+        transitionToNextMap(gameState);
+    }else{
+        gameState.exam_pending=examResult;
+        gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+        showExamBonusModal(examResult);
+    }
+    render();return;
+}
+    if(ctype==="高考"){
+        gameState.message=`你选择了【${chosen.label}】—— ${chosen.desc}`;
+        if(classMsg)gameState.message+="\n"+classMsg;
+        gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
+        // 基于高考选项决定结局走向
+        if(chosen._gaokao_action==="exam"){
+            // 正常赴考：走标准高考判定
+            saveMapSnapshot(gameState);
+            const result=doGaokao(gameState.character);
+            gameState.ending=typeof result==="string"?result:result.ending;
+            gameState.fusion=result.fusion||false;
+            gameState.fusionTitle=result.fusionTitle||null;
+            gameState.fusionColor=result.fusionColor||null;
+            gameState.fusionPrefix=result.fusionPrefix||null;
+            gameState.tags=result.tags||[];
+            gameState.game_over=true;gameState.in_gaokao_prep=false;
+            gameState.message="🎓 高考结束！";
+        }else if(chosen._gaokao_action==="flee"){
+            // 弃考系列结局
+            gameState.ending="🏃【弃考·逃离考场】\n高中三年按部就班的生活终于迎来尽头，可是此刻，你心中却生出一个冲动的念头。或许是压抑太久的叛逆，或许是面对未知的怯懦——你在抵达考场的前一刻，转身跑向了城市另一头的车站。风吹过空荡荡的校服口袋，你没有回头。";
+            gameState.game_over=true;gameState.in_gaokao_prep=false;
+        }else if(chosen._gaokao_action==="oversleep"){
+            // 意外系列结局
+            gameState.ending="😱【意外·错过高考】\n你预先订好的闹钟并没有响。当阳光透过窗帘缝隙洒在脸上，你终于从一场漫长而舒适的睡眠中醒来——墙上的时钟赫然指向了十二点整。\n\n有那么一瞬间，你以为这是梦。但窗外的蝉鸣和空荡荡的房间告诉你，一切都是真的。";
+            gameState.game_over=true;gameState.in_gaokao_prep=false;
+        }
+        render();return;
+    }
     // 非表白非奇遇：弹出叙事弹窗
     if(!chosen._is_confession&&chosen._narrative){
         pendingNarrative={chosen,classMsg,cell,px,py,ctype};
@@ -713,17 +1024,19 @@ function render(){
     const cs=getCellSize(),total=cs+CELL_GAP;
     let grid,gridSize,playerPos,connLines;
     if(state.in_exam_prep){grid=[[{x:0,y:0,type:"期末备考",icon:"📚",color:"#E67E22",entered:false,blocked:false}]];gridSize=1;playerPos=[0,0];connLines=[]}
+    else if(state.in_gaokao_prep){grid=[[{x:0,y:0,type:"高考",icon:"🏆",color:"#FFD700",entered:false,blocked:false}]];gridSize=1;playerPos=[0,0];connLines=[]}
     else{grid=[];gridSize=state.grid_size;playerPos=state.player_pos;
         for(let y=0;y<gridSize;y++){const row=[];for(let x=0;x<gridSize;x++){const key=`${x},${y}`,cell=state.map_data[key];if(cell&&cell.revealed)row.push({x,y,type:cell.type,icon:CELL_TYPE_CONFIG[cell.type]?.icon,color:CELL_TYPE_CONFIG[cell.type]?.color,entered:cell.entered,blocked:cell.blocked});else row.push(null)}grid.push(row)}
         connLines=buildConnectionLines(state)}
     const gridEl=document.getElementById("grid");gridEl.style.gridTemplateColumns=`repeat(${gridSize},${cs}px)`;gridEl.style.gridTemplateRows=`repeat(${gridSize},${cs}px)`;gridEl.innerHTML="";
     for(let row=0;row<gridSize;row++)for(let col=0;col<gridSize;col++){const cd=grid[row][col],div=document.createElement("div");div.className="cell";div.style.width=cs+"px";div.style.height=cs+"px";
-        if(cd===null){div.classList.add("fog");div.innerHTML="❓"}else{div.style.background=CELL_COLORS[cd.type]||"#555";div.innerHTML=`<span class="icon">${CELL_ICONS[cd.type]||"❓"}</span><span class="label">${cd.type}</span>`;if(cd.x===playerPos[0]&&cd.y===playerPos[1])div.classList.add("current");if(cd.entered){if(REENTERABLE_TYPES.has(cd.type))div.classList.add("reenterable");else div.classList.add("entered")}if(cd.blocked)div.classList.add("blocked");const isCur=cd.x===playerPos[0]&&cd.y===playerPos[1];const canEnter=!cd.blocked&&(REENTERABLE_TYPES.has(cd.type)||!isCur||!cd.entered);if(canEnter&&!state.game_over)div.addEventListener("click",()=>enterCell(cd.x,cd.y))}
+        if(cd===null){div.classList.add("fog");div.innerHTML="❓"}else{div.style.background=CELL_COLORS[cd.type]||"#555";div.innerHTML=`<span class="icon">${CELL_ICONS[cd.type]||"❓"}</span><span class="label">${cd.type}</span>`;if(cd.type==="期末备考"||cd.type==="高考")div.classList.add("special");if(cd.x===playerPos[0]&&cd.y===playerPos[1])div.classList.add("current");if(cd.entered){if(REENTERABLE_TYPES.has(cd.type))div.classList.add("reenterable");else div.classList.add("entered")}if(cd.blocked)div.classList.add("blocked");const isCur=cd.x===playerPos[0]&&cd.y===playerPos[1];const canEnter=!cd.blocked&&(REENTERABLE_TYPES.has(cd.type)||!isCur||!cd.entered);if(canEnter&&!state.game_over)div.addEventListener("click",()=>enterCell(cd.x,cd.y))}
         gridEl.appendChild(div)}
     renderConnections(connLines,gridSize,total);
     // 倒计时显示
     const remain=state.progress_max-state.progress;
-    document.getElementById("semester-title").textContent="📅 "+(SEMESTER_NAMES[state.map_count]||"");
+    document.getElementById("semester-title").textContent=state.holiday?"🏖️ 度假中":"📅 "+(SEMESTER_NAMES[state.map_count]||"");
+    document.getElementById("countdown-label").textContent=state.holiday?"步后假期结束":"步后进入考试";
     const cdEl=document.getElementById("countdown-num"),fillEl=document.getElementById("countdown-fill");
     const oldRemain=parseInt(cdEl.textContent)||state.progress_max;cdEl.textContent=remain;
     if(remain!==oldRemain){cdEl.classList.remove("countdown-text-pop");void cdEl.offsetWidth;cdEl.classList.add("countdown-text-pop");fillEl.classList.remove("flash");void fillEl.offsetWidth;fillEl.classList.add("flash")}
@@ -768,7 +1081,6 @@ function closeNarrativePopup(){
     if(cell){cell.entered=true;gameState.player_pos=[px,py];if(BLOCKABLE_TYPES.has(ctype))cell.blocked=true;revealConnected(gameState,px,py)}
     gameState.current_path.push(ctype||"奇遇");
     gameState.progress++;gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
-    if(gameState.holiday){gameState.holiday.steps++;if(gameState.holiday.steps>=gameState.holiday.maxSteps){exitHoliday()}}
     updateCriticalStats(gameState);checkProgressFull(gameState);render();
 }
 function closeLovePopup(){document.getElementById("love-popup-overlay").style.display="none"}
@@ -783,14 +1095,14 @@ function buildSummaryHTML(){
     h+='<button onclick="resetGame()" style="margin-top:16px;width:100%;">🔄 再来一次</button>';
     return h;
 }
-function showEnding(){const o=document.getElementById("ending-overlay"),b=document.getElementById("ending-box"),t=document.getElementById("ending-title"),tx=document.getElementById("ending-text");if(gameState.bad_ending){b.classList.add("bad");t.textContent="💀 青春陨落";t.style.color="#e74c3c";tx.innerHTML=(gameState.bad_ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}else if(gameState.ending){b.classList.remove("bad");const isQuit=gameState.ending.includes("退学")||gameState.ending.includes("人生是旷野");const isFusion=gameState.fusion;t.textContent=isQuit?"🚪 退学":isFusion?"🌟 融合结局":"🎓 高中生涯 · 终章";t.style.color=isQuit?"#c0392b":isFusion?"#FFD700":"#FFD700";tx.innerHTML=(gameState.ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}o.style.display="flex"}
+function showEnding(){const o=document.getElementById("ending-overlay"),b=document.getElementById("ending-box"),t=document.getElementById("ending-title"),tx=document.getElementById("ending-text");if(gameState.bad_ending){b.classList.add("bad");t.textContent="💀 青春陨落";t.style.color="#e74c3c";t.style.background="";t.style.webkitBackgroundClip="";t.style.webkitTextFillColor="";t.style.backgroundClip="";tx.innerHTML=(gameState.bad_ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}else if(gameState.ending){b.classList.remove("bad");const isQuit=gameState.ending.includes("退学")||gameState.ending.includes("人生是旷野");const isFusion=gameState.fusion;if(isFusion&&gameState.fusionTitle){const ft=gameState.fusionTitle;const fc=gameState.fusionColor||"#FFD700";const lighter=fc+"cc";const emojiEnd=ft.indexOf(" ");const emoji=emojiEnd>0?ft.slice(0,emojiEnd+1):"";const titleText=emojiEnd>0?ft.slice(emojiEnd+1):ft;t.innerHTML=emoji+`<span style="background:linear-gradient(135deg,${fc},${lighter});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:bold;">${titleText}</span>`;const fp=gameState.fusionPrefix||"";const prefixHTML=fp?`<div style="background:linear-gradient(135deg,${fc},${lighter});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:bold;font-style:italic;font-size:15px;line-height:1.7;margin-bottom:14px;">${fp.replace(/\n/g,"<br>")}</div>`:"";tx.innerHTML=prefixHTML+(gameState.ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}else{t.textContent=isQuit?"🚪 退学":"🎓 高中生涯 · 终章";t.style.color=isQuit?"#c0392b":"#FFD700";t.style.background="";t.style.webkitBackgroundClip="";t.style.webkitTextFillColor="";t.style.backgroundClip="";tx.innerHTML=(gameState.ending||"").replace(/\n/g,"<br>")+buildSummaryHTML()}}o.style.display="flex"}
 function quitSchool(){
     gameState.pending_cell=null;gameState.pending_options=null;gameState.pending_type=null;
     gameState.game_over=true;
     const c=gameState.character;
     const dreamCount=(gameState.history||[]).reduce((sum,h)=>sum+(h.types?.["追梦"]||0),0);
-    const allHigh=c["成绩水平"]>=60&&c["体能水平"]>=60&&c["精神状态"]>=60&&c["学习状态"]>=60&&c["班级关系"]>=60;
-    if(allHigh&&dreamCount>5){
+    const allHigh=c["成绩水平"]>=50&&c["体能水平"]>=50&&c["精神状态"]>=50&&c["学习状态"]>=50&&c["班级关系"]>=50;
+    if(allHigh&&dreamCount>=3){
         gameState.ending="🌄【人生是旷野】\n他们问你为什么离开学校，你摇了摇头。你说不清理由，只是心底有个声音在说——你不属于这一方天地。\n\n不是所有人都要走同一条路。你选择了旷野，那就大胆往前走吧。";
     }else{
         gameState.ending="🚪【退学！闯荡江湖】\n你收拾好书包，头也不回地走出了校门。校园的钟声在身后渐行渐远。\n\n有人说你疯了，有人说你勇敢。但你只知道——此去江湖路远，天高任鸟飞。\n\n青春不只有高考一条路，你的故事，才刚刚开始。";
