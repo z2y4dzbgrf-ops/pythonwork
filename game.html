@@ -606,7 +606,7 @@ function handleConfession(char){
     if(love<50){const r=Math.random();if(r<0.40){char["爱情进展"]=0;char["romance_state"]="single";return{msg:"「我们还是做朋友吧」。💔",success:false,popup:true}}if(r<0.70){char["爱情进展"]=Math.max(0,char["爱情进展"]>>1);char["romance_state"]="single";return{msg:"Ta 犹豫了很久，最后还是摇了摇头……💔",success:false,popup:true}}if(r<0.98){char["romance_state"]="dating";char["爱情进展"]=clampStat(char["爱情进展"]+5,"爱情进展");partnerName=pickRandomName();return{msg:"Ta 红着脸点了点头！💕 你们在一起了！",success:true,popup:false}}char["romance_state"]="dating";char["爱情进展"]=STAT_MAX;partnerName=pickRandomName();return{msg:"「其实我也喜欢你很久了……」💖 双向奔赴！",success:true,popup:false}}
     char["romance_state"]="dating";char["爱情进展"]=clampStat(char["爱情进展"]+8,"爱情进展");partnerName=pickRandomName();return{msg:"Ta 笑着接受了你的表白！💕 你们的故事正式开始了。",success:true,popup:false};
 }
-function checkLoveZero(char){if(char["爱情进展"]<=0&&char["romance_state"]==="dating"){char["romance_state"]="single";char["爱情进展"]=0;return"💔 你们的感情走到了尽头……Ta 不喜欢你了，这段爱情结束了。"}if(char["爱情进展"]<=0)char["爱情进展"]=0;return null}
+function checkLoveZero(char){if(char["爱情进展"]<=0&&char["romance_state"]==="dating"){char["romance_state"]="single";char["爱情进展"]=0;return"💔 你们的感情走到了尽头……Ta 不喜欢你了，这段爱情结束了。"}return null}
 
 // ==================== 考试系统 ====================
 function doExam(char){
@@ -850,9 +850,10 @@ function enterCell(x,y){
         const canGo=gameState.character["成绩水平"]>=req;
         typeLabel="小长假";options=[
             {label:`去度假(需成绩≥${req})`,desc:canGo?"享受难得的假期时光！":"成绩不足，无法度假",_is_holiday:true,_disabled:!canGo,成绩水平:0,精神状态:3,_narrative:"你收拾好行李，奔向阳光和海滩。假期虽短，但足够让人满血复活。"},
-            {label:"上补习班",desc:"假期也不放松，弯道超车的好机会。",成绩水平:8,_no_fluctuate:true,_narrative:"别人在度假，你在刷题。虽然辛苦，但你知道这些努力都会在考场上兑现。"},
+            {label:"上补习班",desc:"假期也不放松，弯道超车的好机会。",成绩水平:8,学习状态:5,_no_fluctuate:true,_narrative:"别人在度假，你在刷题。虽然辛苦，但你知道这些努力都会在考场上兑现。"},
         ];
         if(!canGo)options[0].desc="成绩不足，无法度假";
+        options=options.map(o=>{const fl={};for(const s of STAT_NAMES){if(o[s]!==undefined)fl[s]=o._no_fluctuate?o[s]:fluctuate(o[s])}return{...o,_fluctuated:fl}});
         gameState.pending_cell=[x,y];gameState.pending_options=options;gameState.pending_type=typeLabel;
         showModal(typeLabel,options);render();return;
     }
@@ -875,16 +876,19 @@ function enterCell(x,y){
     }
     else return;
     // 【Bug修复】进入节点瞬间固化所有选项的随机波动值
-    options=options.map(o=>{const fl={};for(const s of STAT_NAMES){if(o[s]!==undefined)fl[s]=fluctuate(o[s])}return{...o,_fluctuated:fl}});
+    options=options.map(o=>{const fl={};for(const s of STAT_NAMES){if(o[s]!==undefined)fl[s]=o._no_fluctuate?o[s]:fluctuate(o[s])}return{...o,_fluctuated:fl}});
     gameState.pending_cell=[x,y];gameState.pending_options=options;gameState.pending_type=typeLabel;
     showModal(typeLabel,options);render();
 }
 
 function previewChoice(index){
+    console.log('previewChoice called, index:',index,'pending_type:',gameState.pending_type);
     pendingChoiceIndex=index;
     const opt=gameState.pending_options[index];
     const eff=opt._fluctuated||{};
     const isEncounter=gameState.pending_type==="奇遇";
+    // 小长假上补习班：预览直接显示固定效果
+    if(gameState.pending_type==="小长假"&&opt.label==="上补习班"){eff["成绩水平"]=8;eff["学习状态"]=5;console.log('preview 补习班 eff:',eff)}
     pendingFlucEffects=isEncounter?{}:eff;
     document.querySelectorAll(".option-btn").forEach((b,i)=>{
         b.classList.toggle("selected",i===index);
@@ -938,6 +942,8 @@ function confirmChoice(){
         return;
     }
     applyEffects(gameState.character,adjEff);
+    // 小长假上补习班：直接应用效果
+    if(ctype==="小长假"&&chosen.label==="上补习班"){gameState.character["成绩水平"]=clampStat(gameState.character["成绩水平"]+8,"成绩水平");gameState.character["学习状态"]=clampStat(gameState.character["学习状态"]+5,"学习状态");adjEff["成绩水平"]=8;adjEff["学习状态"]=5;console.log('apply 补习班:',gameState.character["成绩水平"],gameState.character["学习状态"])}
     applyGradeDecay(gameState.character,gameState.map_count,gameDifficulty);applyHardSpiritPenalty(gameState.character);
     const classMsg=applyClassRelEffects(gameState.character);
     // 假期步数递增（必须在叙事弹窗之前）
@@ -1070,6 +1076,7 @@ function render(){
 }
 
 function showModal(cellType,options){
+    console.log('showModal',cellType,'options:',options.map(o=>o.label));
     document.getElementById("modal-title").textContent=(CELL_ICONS[cellType]||"")+" "+cellType;
     document.getElementById("modal-subtitle").textContent="请做出你的选择：";
     let desc=NODE_DESCRIPTIONS[cellType]||"";
