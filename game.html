@@ -103,7 +103,8 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
     .cell{font-size:12px}.cell .icon{font-size:16px}.cell .label{font-size:8px}
     .cell.special .icon{font-size:22px}.cell.special .label{font-size:11px}
 }
-
+
+
 
 
 
@@ -198,8 +199,7 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <div id="stats-container"></div>
 </div>
 <div class="panel-box" style="text-align:center;">
-<button onclick="quitSc
-hool()" style="background:#c0392b;width:100%;">🚪 离开学校</button>
+<button onclick="quitSchool()" style="background:#c0392b;width:100%;">🚪 离开学校</button>
 </div>
 
 </div>
@@ -1065,7 +1065,8 @@ function render(){
         statsEl.innerHTML+=`<div class="stat-row"><span style="font-size:9px;color:#555;width:22px;">${minV}</span><span class="stat-name ${cr?"critical-warn":""}">${ic}${fn}</span><div class="stat-bar-bg" style="position:relative;">${zeroPct>=0?`<div style="position:absolute;left:${zeroPct}%;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.5);z-index:1;box-shadow:0 0 3px rgba(255,255,255,0.3);"></div>`:""}<div class="stat-bar-fill" style="width:${p}%;background:${STAT_COLORS[s]}"></div></div><span class="stat-val ${cr?"critical-warn":""}">${v}</span><span style="font-size:9px;color:#555;width:22px;text-align:left;">${maxV}</span></div>`}
     // 精神惩罚闪红动画
     if(window._spiritPenaltyFlash){window._spiritPenaltyFlash=false;const sb=document.getElementById("stats-box");sb.classList.remove("flash-penalty");void sb.offsetWidth;sb.classList.add("flash-penalty")}
-    if(state.game_over)showEnding();
+    if(state.game_over)showEnding();
+
     // 小长假步数耗尽自动退出
     if(state.holiday&&state.holiday.steps>=state.holiday.maxSteps){exitHoliday();render();return}
 }
