@@ -28,7 +28,7 @@ body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-co
 #info-panel{width:290px;display:flex;flex-direction:column;gap:10px}
 .panel-box{background:rgba(255,255,255,0.06);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)}
 .panel-box h4{font-size:12px;color:#aaa;margin-bottom:6px}
-.countdown-bar{width:100%;height:16px;background:rgba(255,255,255,0.1);border-radius:8px;overflow:hidden}
+.countdown-bar{width:100%;height:16px;background:rgba(255,255,255,0.1);border-radius:8px;overflow:hidden;position:relative}
 .countdown-fill{height:100%;width:100%;border-radius:8px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1)}
 .countdown-fill.flash{animation:cdFlash 0.6s ease-out}
 @keyframes cdFlash{0%{filter:brightness(2.5);box-shadow:0 0 20px rgba(255,255,255,0.6)}100%{filter:brightness(1);box-shadow:0 0 0px}}
@@ -103,6 +103,10 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
     .cell{font-size:12px}.cell .icon{font-size:16px}.cell .label{font-size:8px}
     .cell.special .icon{font-size:22px}.cell.special .label{font-size:11px}
 }
+
+
+
+
 </style>
 </head>
 <body>
@@ -188,13 +192,14 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <small><span style="color:#FFD700;font-weight:bold;" id="countdown-num">12</span> <span style="color:#888;" id="countdown-label">步后进入考试</span></small>
 </div>
 <div class="panel-box msg-box" id="message-box">加载中...</div>
-</div>
+
 <div class="panel-box" id="stats-box">
 <h4>📊 角色状态 <span id="critical-indicator" style="color:#e74c3c;display:none;">⚠️危急</span></h4>
 <div id="stats-container"></div>
 </div>
 <div class="panel-box" style="text-align:center;">
-<button onclick="quitSchool()" style="background:#c0392b;width:100%;">🚪 离开学校</button>
+<button onclick="quitSc
+hool()" style="background:#c0392b;width:100%;">🚪 离开学校</button>
 </div>
 
 </div>
@@ -214,6 +219,10 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <h3>💔 爱情终结</h3><p id="love-popup-msg" style="color:#ddd;font-size:14px;line-height:1.6;margin:12px 0;"></p>
 <button onclick="closeLovePopup()" style="background:#FF6B9D;">我知道了</button>
 </div></div>
+
+
+</div>
+
 
 <div id="narrative-popup-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:140;justify-content:center;align-items:center;">
 <div style="background:#1e1e3a;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;max-width:420px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.5);text-align:center;">
@@ -272,7 +281,7 @@ const SEMESTER_NAMES={1:"高一年级 上学期",2:"高一年级 下学期",3:"�
 const STAT_MAX=100,STAT_MIN=0,CLASS_REL_MIN=-100,LOVE_MIN=-100;
 const GRADE_SCORE_MAX=150;
 const REENTERABLE_TYPES=new Set(["恋爱","追梦"]);
-const BLOCKABLE_TYPES=new Set(["学习","课余","测验","研学","奇遇"]);
+const BLOCKABLE_TYPES=new Set(["学习","课余","测验","研学","奇遇","小长假"]);
 const STAT_NAMES=["成绩水平","爱情进展","体能水平","精神状态","学习状态","班级关系"];
 const STAT_EMOJI={成绩水平:"📖",爱情进展:"💕",体能水平:"💪",精神状态:"😊",学习状态:"📝",班级关系:"👥"};
 const STAT_FULL={成绩水平:"成绩水平",爱情进展:"爱情进展",体能水平:"体能水平",精神状态:"精神状态",学习状态:"学习状态",班级关系:"班级关系"};
@@ -323,9 +332,9 @@ const TEST_OPTIONS=[
     {label:"轻松应对",desc:"心态放松，尽力就好。",成绩水平:0,精神状态:-1,_narrative:"你没给自己太大压力，会做的全做了，不会的也蒙上了。考完就考完吧，心态平和你就是赢家。"},
 ];
 const RESEARCH_OPTIONS=[
-    {label:"深入探究",desc:"沉浸在知识海洋中。",成绩水平:4,学习状态:6,_narrative:"你在实验室里一待就是一天，数据的规律渐渐浮现。那种发现新知的喜悦，让所有疲惫都值得了。"},
-    {label:"开阔视野",desc:"走出课本看世界。",精神状态:5,班级关系:4,_narrative:"研学途中的见闻比课本生动一百倍。你突然明白，世界那么大，学习的意义不只在分数。"},
-    {label:"结交朋友",desc:"结识志同道合的伙伴。",精神状态:4,班级关系:6,_narrative:"在研学途中你遇到了一群有趣的灵魂。你们交换了联系方式，约定以后一起探索更广阔的世界。"},
+    {label:"深入探究",desc:"沉浸在知识海洋中。",成绩水平:5,学习状态:7,精神状态:2,_narrative:"你在实验室里一待就是一天，数据的规律渐渐浮现。那种发现新知的喜悦，让所有疲惫都值得了。"},
+    {label:"开阔视野",desc:"走出课本看世界。",成绩水平:3,学习状态:5,精神状态:5,_narrative:"研学途中的见闻比课本生动一百倍。你突然明白，世界那么大，学习的意义不只在分数。"},
+    {label:"结交同道",desc:"结识志同道合的伙伴。",成绩水平:2,学习状态:6,精神状态:4,_narrative:"在研学途中你遇到了一群有趣的灵魂。你们交换了联系方式，约定以后一起探索更广阔的世界。"},
 ];
 const CONFESSION_OPTIONS=[
     {label:"主动表白",desc:"鼓起勇气说出心里话。",精神状态:2,成绩水平:-3,学习状态:-3,_is_confession:true,_narrative:"你站在Ta面前，心跳快得像要跳出胸膛。话到嘴边又咽回去，但最终还是说出了那句藏在心底很久的话……"},
@@ -480,10 +489,7 @@ function generateMap(mapCount,prevMapData,prevConn){
         gridSize=bigGS;
         // Reuse map for all semesters
         if(prevMapData&&Object.keys(prevMapData).length>0){
-            // Reset blocked but keep revealed/entered
-            for(const[k,cell]of Object.entries(prevMapData)){
-                if(cell.blocked)cell.blocked=false;
-            }
+            // Keep blocked state from previous semester
             // Reuse previous connections if available
             const conn=prevConn||generateConnections(gridSize);
             const cx=Math.floor(gridSize/2),cy=Math.floor(gridSize/2);
@@ -496,7 +502,6 @@ function generateMap(mapCount,prevMapData,prevConn){
         // Normal/Hard: Even maps reuse the previous odd map
         gridSize=GRID_SIZE_MAP[mapCount-1];
         if(prevMapData&&Object.keys(prevMapData).length>0){
-            for(const[k,cell]of Object.entries(prevMapData)){if(cell.blocked)cell.blocked=false}
             const conn=prevConn||generateConnections(gridSize);
             const cx=Math.floor(gridSize/2),cy=Math.floor(gridSize/2);
             const centerKey=`${cx},${cy}`;
@@ -521,12 +526,6 @@ function generateMap(mapCount,prevMapData,prevConn){
     if(!loveCell)loveCell=allCells.shift();else allCells.splice(allCells.indexOf(loveCell),1);
     mapData[`${loveCell[0]},${loveCell[1]}`]={type:"恋爱",revealed:false,entered:false,blocked:false};
 
-    // 研学：距中心≥3步
-    let researchCell=null;
-    for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){researchCell=cell;break}}
-    if(!researchCell)researchCell=allCells.shift();else allCells.splice(allCells.indexOf(researchCell),1);
-    mapData[`${researchCell[0]},${researchCell[1]}`]={type:"研学",revealed:false,entered:false,blocked:false};
-
     // 追梦：1个
     const dreamCount=1,dreamCells=[];
     for(const cell of allCells){const ck=`${cell[0]},${cell[1]}`;if(!centerNeighbors.has(ck)&&bfsDistance(conn,centerKey,ck,10)>=3){dreamCells.push(cell);if(dreamCells.length>=dreamCount)break}}
@@ -548,13 +547,8 @@ function generateMap(mapCount,prevMapData,prevConn){
         if(holidayCell){allCells.splice(allCells.indexOf(holidayCell),1);mapData[`${holidayCell[0]},${holidayCell[1]}`]={type:"小长假",revealed:false,entered:false,blocked:false}}
     }
 
-    // 剩余：学习:课余:测验:奇遇=3:3:2:2
-    const total=allCells.length,r3=total/10;
-    const studyC=Math.floor(r3*3),extraC=Math.floor(r3*3),testC=Math.floor(r3*2);
-    for(let i=0;i<studyC;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"学习",revealed:false,entered:false,blocked:false}}
-    for(let i=studyC;i<studyC+extraC;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"课余",revealed:false,entered:false,blocked:false}}
-    for(let i=studyC+extraC;i<studyC+extraC+testC;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"测验",revealed:false,entered:false,blocked:false}}
-    for(let i=studyC+extraC+testC;i<allCells.length;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:"奇遇",revealed:false,entered:false,blocked:false}}
+    // 剩余：学习:课余:测验:奇遇:研学=1:1:1:1:1
+    const total=allCells.length;const types=["学习","课余","测验","奇遇","研学"];const perType=Math.floor(total/5);for(let ti=0;ti<5;ti++){const t=types[ti];const start=ti*perType;const end=ti===4?allCells.length:start+perType;for(let i=start;i<end;i++){const[x,y]=allCells[i];mapData[`${x},${y}`]={type:t,revealed:false,entered:false,blocked:false}}}
 
     ensureTypeDiversity(mapData,conn,centerKey);
     for(const nk of conn[centerKey]){if(mapData[nk])mapData[nk].revealed=true}
@@ -864,7 +858,7 @@ function enterCell(x,y){
     else if(cell.type==="课余"){typeLabel="课余";options=getExtracurricularOptions()}
     else if(cell.type==="测验"){typeLabel="测验";options=TEST_OPTIONS}
     else if(cell.type==="追梦"){typeLabel="追梦";options=DREAM_OPTIONS}
-    else if(cell.type==="研学"){typeLabel="研学";options=RESEARCH_OPTIONS}
+    else if(cell.type==="研学"){typeLabel="研学";const ri=randInt(0,RESEARCH_OPTIONS.length-1);options=[RESEARCH_OPTIONS[ri]]}
     else if(cell.type==="奇遇"){
         typeLabel="奇遇";
         const pool=[...ENCOUNTER_EVENTS];
@@ -898,7 +892,8 @@ function previewChoice(index){
             if(isEncounter){
                 div.innerHTML='<span style="color:#aaa;font-size:10px;font-style:italic;">高中生活就是如此，下一步会发生什么难以预料……</span>';
             }else{
-                let h="";for(const[s,v]of Object.entries(eff)){if(v===0)continue;const cls=v>0?"eff-up":"eff-down";const sign=v>0?"+"+v:v;h+=`<span class="${cls}" style="margin-right:8px;font-size:10px;">${STAT_EMOJI[s]||''}${STAT_FULL[s]||s} ${sign}</span>`}
+                const displayEff={...eff};if(gameMode==="hard"&&displayEff["成绩水平"]&&displayEff["成绩水平"]>0)displayEff["成绩水平"]=Math.max(0,displayEff["成绩水平"]-1);
+                let h="";for(const[s,v]of Object.entries(displayEff)){if(v===0)continue;const cls=v>0?"eff-up":"eff-down";const sign=v>0?"+"+v:v;h+=`<span class="${cls}" style="margin-right:8px;font-size:10px;">${STAT_EMOJI[s]||''}${STAT_FULL[s]||s} ${sign}</span>`}
                 if(!h)h='<span style="color:#999;font-size:10px;">无变化</span>';
                 div.innerHTML=h;
             }
@@ -1070,7 +1065,7 @@ function render(){
         statsEl.innerHTML+=`<div class="stat-row"><span style="font-size:9px;color:#555;width:22px;">${minV}</span><span class="stat-name ${cr?"critical-warn":""}">${ic}${fn}</span><div class="stat-bar-bg" style="position:relative;">${zeroPct>=0?`<div style="position:absolute;left:${zeroPct}%;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.5);z-index:1;box-shadow:0 0 3px rgba(255,255,255,0.3);"></div>`:""}<div class="stat-bar-fill" style="width:${p}%;background:${STAT_COLORS[s]}"></div></div><span class="stat-val ${cr?"critical-warn":""}">${v}</span><span style="font-size:9px;color:#555;width:22px;text-align:left;">${maxV}</span></div>`}
     // 精神惩罚闪红动画
     if(window._spiritPenaltyFlash){window._spiritPenaltyFlash=false;const sb=document.getElementById("stats-box");sb.classList.remove("flash-penalty");void sb.offsetWidth;sb.classList.add("flash-penalty")}
-    if(state.game_over)showEnding();
+    if(state.game_over)showEnding();
     // 小长假步数耗尽自动退出
     if(state.holiday&&state.holiday.steps>=state.holiday.maxSteps){exitHoliday();render();return}
 }
