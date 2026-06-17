@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>高中生涯 - 无悔青春 v2026.1.4</title>
-<script>if(!location.search.includes("v=2026.1.4")){if(!sessionStorage.getItem("_vr")){sessionStorage.setItem("_vr","1");location.replace(location.pathname+"?v=2026.1.4"+location.hash)}}</script>
+<title>高中生涯 - 无悔青春 v2026.1.6</title>
+<script>if(!location.search.includes("v=2026.1.5")){if(!sessionStorage.getItem("_vr")){sessionStorage.setItem("_vr","1");location.replace(location.pathname+"?v=2026.1.5"+location.hash)}}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#e0e0e0}
-#app{display:flex;gap:22px;padding:18px;align-items:flex-start}
+#app{display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px}
+#app-inner{display:flex;gap:22px;align-items:flex-start;justify-content:center;width:100%}
 #grid-wrapper{position:relative;background:rgba(255,255,255,0.05);padding:10px;border-radius:16px;border:1px solid rgba(255,255,255,0.1)}
 #grid{display:grid;gap:5px}
 #conn-svg{position:absolute;top:10px;left:10px;pointer-events:none;z-index:1}
@@ -68,7 +69,7 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 #ending-box .ending-text{font-size:14px;line-height:1.8;white-space:pre-wrap;color:#ddd;margin-bottom:18px;overflow-wrap:break-word;word-break:break-word}
 @media(max-width:768px){
     body{align-items:flex-start;padding:0}
-    #app{flex-direction:column;gap:8px;padding:6px;width:100%}
+    #app{flex-direction:column;gap:6px;padding:6px;width:100%}#grid-wrapper{order:1}#buff-bar{order:2;margin:6px 0}#app-inner{order:3;flex-direction:column;gap:8px;align-items:center;width:100%}#buff-bar{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;justify-content:center;min-height:24px;width:100%}
     #grid-wrapper{width:100%;display:flex;justify-content:center}
     #info-panel{width:100%}
     .stat-row .stat-name{width:70px}
@@ -107,6 +108,15 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 
 
 
+
+
+#buff-bar{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;justify-content:center;min-height:24px;width:100%}
+.buff-tag{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:bold;white-space:nowrap}
+.buff-mode{background:rgba(74,144,226,0.25);border:1px solid rgba(74,144,226,0.4);color:#4A90E2}
+.buff-hard{background:rgba(231,76,60,0.2);border:1px solid rgba(231,76,60,0.35);color:#e74c3c}
+.buff-bigmap{background:rgba(155,89,182,0.2);border:1px solid rgba(155,89,182,0.35);color:#9B59B6}
+.buff-normal{background:rgba(46,204,113,0.2);border:1px solid rgba(46,204,113,0.35);color:#2ECC71}
+.buff-info{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa}
 
 </style>
 </head>
@@ -183,6 +193,8 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 </div>
 
 <div id="app" style="display:none;">
+<div id="buff-bar"></div>
+<div id="app-inner">
 <div id="grid-wrapper"><svg id="conn-svg"></svg><div id="grid"></div></div>
 <div id="info-panel">
 <div id="top-row">
@@ -200,6 +212,7 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 </div>
 <div class="panel-box" style="text-align:center;">
 <button onclick="quitSchool()" style="background:#c0392b;width:100%;">🚪 离开学校</button>
+</div>
 </div>
 
 </div>
@@ -436,7 +449,7 @@ function startGame(){
 }
 
 function initCharacter(){
-    return {成绩水平:38,爱情进展:0,体能水平:50,精神状态:50,学习状态:30,班级关系:20,romance_state:"single"};
+    return {成绩水平:60,爱情进展:0,体能水平:50,精神状态:50,学习状态:30,班级关系:20,romance_state:"single"};
 }
 function clampStat(val,statName){
     if(statName==="班级关系")return Math.max(CLASS_REL_MIN,Math.min(STAT_MAX,val));
@@ -578,7 +591,7 @@ function applyHardSpiritPenalty(char){
         for(let j=0;j<targets.length;j++){
             if(picked.some(p=>p.name===targets[j].name))continue;
             cum+=weights[Math.min(j,weights.length-1)];
-            if(r<=cum||j===targets.length-1){char[targets[j].name]=clampStat(char[targets[j].name]-3,targets[j].name);picked.push(targets[j]);break}
+            if(r<=cum||j===targets.length-1){const penalty=i===0?3:2;char[targets[j].name]=clampStat(char[targets[j].name]-penalty,targets[j].name);picked.push(targets[j]);break}
         }
     }
     // 触发动画
@@ -586,8 +599,8 @@ function applyHardSpiritPenalty(char){
 }
 function applyGradeDecay(char,mapCount,diff){
     const hard=diff==="hard";
-    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?3:0),"精神状态")}
-    else if(mapCount>=3){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:1),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?2:0),"精神状态")}
+    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?2:0),"精神状态")}
+    else if(mapCount>=3){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:1),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?1:0),"精神状态")}
     else if(hard){char["成绩水平"]=clampStat(char["成绩水平"]-1,"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-1,"精神状态")}
 }
 function getLoveMultiplier(char){const cr=char["班级关系"];if(cr>=75)return 1.3;if(cr>=50)return 1.15;return 1.0}
@@ -1066,6 +1079,7 @@ function render(){
     // 精神惩罚闪红动画
     if(window._spiritPenaltyFlash){window._spiritPenaltyFlash=false;const sb=document.getElementById("stats-box");sb.classList.remove("flash-penalty");void sb.offsetWidth;sb.classList.add("flash-penalty")}
     if(state.game_over)showEnding();
+    renderBuffBar();
 
     // 小长假步数耗尽自动退出
     if(state.holiday&&state.holiday.steps>=state.holiday.maxSteps){exitHoliday();render();return}
@@ -1143,6 +1157,49 @@ function resetGame(){
 // 启动时初始化姓名
 playerName=pickRandomName();
 window.onload=function(){var nd=document.getElementById("name-display");if(nd)nd.textContent=playerName;};
+
+function renderBuffBar(){
+    const el=document.getElementById("buff-bar");if(!el||!gameState)return;
+    let tags=[];
+    // Mode tag
+    const modeName={normal:"普通模式",hard:"困难模式",bigmap:"大地图模式"}[gameMode]||gameMode;
+    const modeCls={normal:"buff-normal",hard:"buff-hard",bigmap:"buff-bigmap"}[gameMode]||"buff-mode";
+    tags.push({cls:modeCls,text:"⚙ "+modeName});
+    // Hard mode specifics
+    if(gameMode==="hard"){
+        tags.push({cls:"buff-hard",text:"📉 成绩增量-1"});
+        tags.push({cls:"buff-hard",text:"💥 精神崩溃-3/-2"});
+    }
+    // BigMap specifics
+    if(gameMode==="bigmap"){
+        tags.push({cls:"buff-bigmap",text:"⏳ 时光倒流奇遇"});
+        tags.push({cls:"buff-bigmap",text:"🗺 全学期共用地图"});
+    }
+    // Current grade/spirit decay per step
+    if(gameMode!=="bigmap"){
+        const mc=gameState.map_count;
+        const hard=gameMode==="hard";
+        let decayText="";
+        if(mc>=5)decayText="📚 高三:成绩"+(hard?"-3":"-2");
+        else if(mc>=3)decayText="📚 高二:成绩"+(hard?"-3":"-1");
+        else if(mc<3&&hard)decayText="📚 高一:成绩-1";
+        if(decayText){
+            if(hard){
+                const sPen=mc>=5?"-2":mc>=3?"-1":"-1";
+                decayText+=" 精神"+sPen;
+            }
+            decayText+="/步";
+            tags.push({cls:"buff-info",text:decayText});
+        }
+    }
+    // Holiday available
+    const holidayMaps=gameMode==="bigmap"?[1,2,3,4,5,6]:[1,3,5];
+    if(holidayMaps.includes(gameState.map_count)){
+        tags.push({cls:"buff-info",text:"🏖 本学年有小长假"});
+    }
+    el.innerHTML=tags.map(t=>`<span class="buff-tag ${t.cls}">${t.text}</span>`).join("");
+}
+
 </script>
 </body>
 </html>
