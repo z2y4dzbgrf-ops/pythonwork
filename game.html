@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>高中生涯 - 无悔青春</title>
-<script>if(!location.search.includes("v=2026.1.0"))location.replace(location.pathname+"?v=2026.1.0"+location.hash)</script>
+<script>if(!location.search.includes("v=2026.1.2"))location.replace(location.pathname+"?v=2026.1.2"+location.hash)</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#e0e0e0}
@@ -44,6 +44,8 @@ body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;display:flex;justify-co
 .stat-bar-fill{height:100%;border-radius:4px;transition:width 0.4s}
 .stat-row .stat-val{width:22px;text-align:right;font-size:10px;color:#ccc}
 .critical-warn{color:#e74c3c!important;font-weight:bold}
+#stats-box.flash-penalty{animation:penaltyFlash 0.6s ease-out}
+@keyframes penaltyFlash{0%{box-shadow:0 0 30px rgba(231,76,60,0.8);background:rgba(231,76,60,0.15)}100%{box-shadow:0 0 0px rgba(231,76,60,0);background:rgba(255,255,255,0.06)}}
 button{padding:10px;background:#4A90E2;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;transition:background 0.2s}
 button:hover{background:#5AA0F2}
 button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:rgba(255,255,255,0.25)}
@@ -125,7 +127,7 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 </div>
 </div>
 <button onclick="showModeSelect()" style="background:linear-gradient(135deg,#4A90E2,#7ED321);color:#fff;padding:12px 40px;font-size:16px;border-radius:12px;border:none;cursor:pointer;margin-top:6px;">✨ 下一步</button>
-<p style="color:#444;font-size:9px;margin-top:10px;">ver.2026.1.0</p>
+<p style="color:#444;font-size:9px;margin-top:10px;">ver.2026.1.2</p>
 </div>
 </div>
 
@@ -152,7 +154,7 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <div style="font-size:11px;color:#bbb;line-height:1.7;">
 <p>⚡ 每步移动扣除精神与成绩</p>
 <p>📉 成绩增益效果削弱</p>
-<p>� 步数与普通模式略有不同</p>
+<p>👣 步数与普通模式略有不同</p>
 <p>🗺️ 每年共用一张地图，保留进度</p>
 <p>🏖️ 度假仅2步，门槛更高</p>
 <p>💔 精神过低触发额外惩罚</p>
@@ -237,10 +239,10 @@ button.cancel{background:rgba(255,255,255,0.15)}button.cancel:hover{background:r
 <h3 style="text-align:center;margin-bottom:12px;">📖 新手说明</h3>
 <div style="font-size:12px;color:#ccc;line-height:1.7;">
 <p><b>🎮 基本玩法：</b>点击地图上已点亮的格子进行探索。每次选择会影响角色状态。倒计时归零后进入期末考试。</p>
-<p><b>📊 状态值：</b>成绩水平(上限150)、爱情进展、体能水平、精神状态、学习状态(上限100)、班级关系(-100~100)。普通/困难模式高二起每步扣成绩，高三加重。</p>
+<p><b>📊 状态值：</b>成绩水平(上限150)、爱情进展(下限-100/上限100)、体能水平、精神状态、学习状态(上限100)、班级关系(-100~100)。普通/困难模式高二起每步扣成绩，高三加重。</p>
 <p><b>⚙️ 三种模式：</b>普通(标准规则/标准步数) / 困难(每步衰减+精神惩罚/步数变化) / 大地图(单张9×9超大探索地图/无衰减)。</p>
 <p><b>🚪 离开学校：</b>随时可点击红色按钮退学，触发特殊结局。</p>
-<p><b>💀 坏结局：</b>任一状态(除爱情)触底后，下一步若未提升，立即触发坏结局。</p>
+<p><b>💀 坏结局：</b>任一状态触底后，下一步若未提升，立即触发坏结局。</p>
 <p><b>🗺️ 节点类型：</b>学习/课余/测验/奇遇/恋爱/追梦/研学/小长假(每年一次，需成绩达标)。</p>
 <p><b>📝 期末考试：</b>根据成绩+学习分档判定，优异/良好可自选额外提升项，较差/极差须选一项扣除。</p>
 <p><b>🎲 奇遇：</b>随机事件，1/3概率出现"无所事事"。大地图模式有概率触发"时光倒流"(步数+3)。</p>
@@ -270,7 +272,7 @@ const PROGRESS_MAX_HARD={1:8,2:8,3:11,4:12,5:15,6:18};
 const PROGRESS_MAX_BIGMAP={1:9,2:9,3:12,4:12,5:12,6:15};
 function getProgressMax(mc){return gameMode==="bigmap"?PROGRESS_MAX_BIGMAP[mc]:gameMode==="hard"?PROGRESS_MAX_HARD[mc]:PROGRESS_MAX_MAP[mc]}
 const SEMESTER_NAMES={1:"高一年级 上学期",2:"高一年级 下学期",3:"高二年级 上学期",4:"高二年级 下学期",5:"高三年级 上学期",6:"高三年级 下学期"};
-const STAT_MAX=100,STAT_MIN=0,CLASS_REL_MIN=-100;
+const STAT_MAX=100,STAT_MIN=0,CLASS_REL_MIN=-100,LOVE_MIN=-100;
 const GRADE_SCORE_MAX=150;
 const REENTERABLE_TYPES=new Set(["恋爱","追梦"]);
 const BLOCKABLE_TYPES=new Set(["学习","课余","测验","研学","奇遇"]);
@@ -361,6 +363,7 @@ const ENCOUNTER_EVENTS=[
 
 const BAD_ENDING_MESSAGES={
     "成绩水平":"📉【学业崩溃】\n你的成绩一落千丈，再也跟不上课程进度。最终，你不得不离开了学校……",
+    "爱情进展":"💔【情伤难自抑】\n你陷在感情的漩涡中无法自拔。那些甜蜜的回忆如今都化作了刺向心口的刀，你把自己关在房间里，不愿再见任何人。",
     "体能水平":"🏥【机能溃败】\n长期的透支终于让你的身体撑不住了。躺在病床上，你后悔没有好好爱惜自己。",
     "精神状态":"💔【精神坍塌】\n巨大的压力终于压垮了你。你把自己关在房间里，不愿面对任何人。",
     "学习状态":"😞【厌学弃学】\n你对学习彻底失去了兴趣。课本上的字像蚂蚁一样爬来爬去。",
@@ -431,10 +434,11 @@ function initCharacter(){
 }
 function clampStat(val,statName){
     if(statName==="班级关系")return Math.max(CLASS_REL_MIN,Math.min(STAT_MAX,val));
+    if(statName==="爱情进展")return Math.max(LOVE_MIN,Math.min(STAT_MAX,val));
     if(statName==="成绩水平")return Math.max(STAT_MIN,Math.min(GRADE_SCORE_MAX,val));
     return Math.max(STAT_MIN,Math.min(STAT_MAX,val));
 }
-function getStatMin(sn){return sn==="班级关系"?CLASS_REL_MIN:STAT_MIN}
+function getStatMin(sn){if(sn==="班级关系")return CLASS_REL_MIN;if(sn==="爱情进展")return LOVE_MIN;return STAT_MIN}
 
 // ==================== 地图生成 ====================
 function bfsDistance(conn,startKey,targetKey,maxDepth=10){
@@ -572,8 +576,8 @@ function applyClassRelEffects(char){
     return m;
 }
 function applyHardSpiritPenalty(char){
-    // 困难模式：精神<45时，随机扣2个非精神状态各5点，按数值加权
-    if(gameMode!=="hard"||char["精神状态"]>=45)return;
+    // 困难模式：精神<35时，随机扣2个非精神状态各3点，按数值加权
+    if(gameMode!=="hard"||char["精神状态"]>=35)return;
     const targets=STAT_NAMES.filter(s=>s!=="精神状态").map(s=>({name:s,val:char[s]}));
     targets.sort((a,b)=>b.val-a.val);
     const weights=[0.50,0.20,0.15,0.10,0.05];
@@ -583,13 +587,15 @@ function applyHardSpiritPenalty(char){
         for(let j=0;j<targets.length;j++){
             if(picked.some(p=>p.name===targets[j].name))continue;
             cum+=weights[Math.min(j,weights.length-1)];
-            if(r<=cum||j===targets.length-1){char[targets[j].name]=clampStat(char[targets[j].name]-5,targets[j].name);picked.push(targets[j]);break}
+            if(r<=cum||j===targets.length-1){char[targets[j].name]=clampStat(char[targets[j].name]-3,targets[j].name);picked.push(targets[j]);break}
         }
     }
+    // 触发动画
+    window._spiritPenaltyFlash=true;
 }
 function applyGradeDecay(char,mapCount,diff){
     const hard=diff==="hard";
-    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?4:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?3:0),"精神状态")}
+    if(mapCount>=5){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:2),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?3:0),"精神状态")}
     else if(mapCount>=3){char["成绩水平"]=clampStat(char["成绩水平"]-(hard?3:1),"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-(hard?2:0),"精神状态")}
     else if(hard){char["成绩水平"]=clampStat(char["成绩水平"]-1,"成绩水平");char["精神状态"]=clampStat(char["精神状态"]-1,"精神状态")}
 }
@@ -704,8 +710,8 @@ function checkBadEnding(state,effects){
     for(const s of[...state.critical_stats]){const ev=effects[s]||0;if(ev<=0&&state.character[s]<=getStatMin(s)){state.game_over=true;state.bad_ending=BAD_ENDING_MESSAGES[s]||`${s}跌入谷底……`;state.message=`💀 坏结局触发！${s}已经降到了最低点……`;return true}if(ev>0||state.character[s]>getStatMin(s))state.critical_stats=state.critical_stats.filter(x=>x!==s)}
     return false;
 }
-function updateCriticalStats(state){for(const s of STAT_NAMES){if(s==="爱情进展")continue;if(state.character[s]<=getStatMin(s)&&!state.critical_stats.includes(s))state.critical_stats.push(s)}}
-function transitionToNextMap(state){const nm=state.map_count+1;saveMapSnapshot(state);const isBigMap=gameMode==="bigmap";const prevData=(nm%2===0&&!isBigMap)?state.map_data:null;const{mapData,conn,gridSize}=generateMap(nm,isBigMap?state.map_data:prevData);state.map_data=mapData;state.connections=conn;state.grid_size=gridSize;state.player_pos=[Math.floor(gridSize/2),Math.floor(gridSize/2)];state.progress=0;state.progress_max=getProgressMax(nm);state.map_count=nm;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.critical_stats=[];state.in_exam_prep=false;state.exam_result=null;if(!isBigMap&&nm===3){state.message+=`\n\n⚠️ 进入高二，每步扣除成绩-1（困难-3）和精神-0（困难-2）。本学期共${getProgressMax(nm)}步。`}if(!isBigMap&&nm===5){state.message+=`\n\n⚠️ 进入高三，每步扣除成绩-2（困难-4）和精神-0（困难-3）。本学期共${getProgressMax(nm)}步。`}}
+function updateCriticalStats(state){for(const s of STAT_NAMES){if(state.character[s]<=getStatMin(s)&&!state.critical_stats.includes(s))state.critical_stats.push(s)}}
+function transitionToNextMap(state){const nm=state.map_count+1;saveMapSnapshot(state);const isBigMap=gameMode==="bigmap";const prevData=(nm%2===0&&!isBigMap)?state.map_data:null;const{mapData,conn,gridSize}=generateMap(nm,isBigMap?state.map_data:prevData);state.map_data=mapData;state.connections=conn;state.grid_size=gridSize;state.player_pos=[Math.floor(gridSize/2),Math.floor(gridSize/2)];state.progress=0;state.progress_max=getProgressMax(nm);state.map_count=nm;state.pending_cell=null;state.pending_options=null;state.pending_type=null;state.critical_stats=[];state.in_exam_prep=false;state.exam_result=null;if(!isBigMap&&nm===3){state.message+=`\n\n⚠️ 进入高二，每步扣除成绩-1（困难-3）和精神-0（困难-2）。本学期共${getProgressMax(nm)}步。`}if(!isBigMap&&nm===5){state.message+=`\n\n⚠️ 进入高三，每步扣除成绩-2（困难-3）和精神-0（困难-3）。本学期共${getProgressMax(nm)}步。`}}
 function checkProgressFull(state){
     if(state.progress<state.progress_max)return false;
     if(state.in_exam_prep){const result=doExam(state.character);if(typeof result==="string"){state.exam_result=result;state.in_exam_prep=false;state.message=result+`\n\n新学期开始了——${SEMESTER_NAMES[state.map_count+1]||""}`;transitionToNextMap(state);return false}state.exam_pending=result;state.message=result.msg;return false}
@@ -742,6 +748,7 @@ function showExamBonusModal(result){
     }else if(result.penalty){
         html+=`<p style="color:#e74c3c;font-size:12px;margin:10px 0 4px;">${result.penaltyLabel}:</p>`;
         for(const s of result.penalty){
+            if(s==="爱情进展"&&gameState.character["爱情进展"]<=0)continue;
             html+=`<button onclick="pickExamPenalty('${s}',${result.penaltyVal})" style="margin:4px;background:rgba(231,76,60,0.2);border:1px solid rgba(231,76,60,0.4);font-size:12px;">${STAT_EMOJI[s]||""} ${STAT_FULL[s]||s} -${result.penaltyVal}</button>`;
         }
     }
@@ -1052,9 +1059,11 @@ function render(){
     document.getElementById("message-box").textContent=state.message;
     document.getElementById("critical-indicator").style.display=state.critical_stats.length>0?"inline":"none";
     const statsEl=document.getElementById("stats-container");statsEl.innerHTML="";
-    for(const[s,v]of Object.entries(state.character)){if(s==="romance_state")continue;const ic=STAT_EMOJI[s]||"",fn=STAT_FULL[s]||s;const isCR=s==="班级关系",isScore=s==="成绩水平";const maxV=isScore?150:100,minV=isCR?-100:0;const p=(v-minV)/(maxV-minV)*100,cr=state.critical_stats.includes(s);
-        const zeroPct=isCR?((0-minV)/(maxV-minV)*100):-1;
-        statsEl.innerHTML+=`<div class="stat-row"><span style="font-size:9px;color:#555;width:22px;">${minV}</span><span class="stat-name ${cr?"critical-warn":""}">${ic}${fn}</span><div class="stat-bar-bg" style="position:relative;">${zeroPct>=0?`<div style="position:absolute;left:${zeroPct}%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.3);z-index:1;"></div>`:""}<div class="stat-bar-fill" style="width:${p}%;background:${STAT_COLORS[s]}"></div></div><span class="stat-val ${cr?"critical-warn":""}">${v}</span><span style="font-size:9px;color:#555;width:22px;text-align:left;">${maxV}</span></div>`}
+    for(const[s,v]of Object.entries(state.character)){if(s==="romance_state")continue;const ic=STAT_EMOJI[s]||"",fn=STAT_FULL[s]||s;const isCR=s==="班级关系",isLove=s==="爱情进展",isScore=s==="成绩水平";const maxV=isScore?150:100,minV=(isCR||isLove)?-100:0;const p=(v-minV)/(maxV-minV)*100,cr=state.critical_stats.includes(s);
+        const zeroPct=(isCR||isLove)?((0-minV)/(maxV-minV)*100):-1;
+        statsEl.innerHTML+=`<div class="stat-row"><span style="font-size:9px;color:#555;width:22px;">${minV}</span><span class="stat-name ${cr?"critical-warn":""}">${ic}${fn}</span><div class="stat-bar-bg" style="position:relative;">${zeroPct>=0?`<div style="position:absolute;left:${zeroPct}%;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.5);z-index:1;box-shadow:0 0 3px rgba(255,255,255,0.3);"></div>`:""}<div class="stat-bar-fill" style="width:${p}%;background:${STAT_COLORS[s]}"></div></div><span class="stat-val ${cr?"critical-warn":""}">${v}</span><span style="font-size:9px;color:#555;width:22px;text-align:left;">${maxV}</span></div>`}
+    // 精神惩罚闪红动画
+    if(window._spiritPenaltyFlash){window._spiritPenaltyFlash=false;const sb=document.getElementById("stats-box");sb.classList.remove("flash-penalty");void sb.offsetWidth;sb.classList.add("flash-penalty")}
     if(state.game_over)showEnding();
     // 小长假步数耗尽自动退出
     if(state.holiday&&state.holiday.steps>=state.holiday.maxSteps){exitHoliday();render();return}
