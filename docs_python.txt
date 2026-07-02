@@ -1,0 +1,42 @@
+# Python 版本结构索引 (server.py + modules/)
+# 最后更新: 2026-06-16 — 与HTML版完全同步
+# 前端: 直接 serve game.html，与 HTML 版共用同一文件
+# 后端 API: /api/state /api/enter /api/choose 供程序化调用
+
+## server.py —— 主服务器
+- 1-20: imports, load_names()从names.txt读100个姓名, NAME_POOL, pick_random_name()
+- 20-25: TOTAL_MAPS=6, PROGRESS_MAX_MAP={1:10,2:10,3:14,4:14,5:18,6:20}, SEMESTER_NAMES
+- 25-100: 游戏状态管理 (init/get/save, build_grid, build_lines, reveal, bad_ending, check_progress_full, transition)
+- 100-200: API路由 (/api/state 含pre-exam分支, /api/enter, /api/choose)
+- 200-210: / 路由 → 直接读取返回 game.html
+- 210+: __main__
+
+## modules/map_gen.py —— 地图生成
+- GRID_SIZE_MAP, REENTERABLE_TYPES
+- randint, shuffle, bfs_distance
+- generate_connections(grid_size) —— 中心边只增不删
+- ensure_type_diversity(map_data, conn, center_key)
+- generate_map(map_count) —— 确保中心至少连通一个学习节点
+
+## modules/events.py —— 事件节点（HTML同步版）
+- NODE_DESCRIPTIONS, CELL_TYPE_CONFIG
+- LEARNING_OPTIONS (含_narrative), EXTRACURRICULAR_POOL/FIXED, get_extracurricular_options()
+- TEST_OPTIONS (含_narrative), RESEARCH_OPTIONS (含_narrative)
+- CONFESSION_OPTIONS (含_narrative, _is_confession), DATING_COMBOS (含_narrative)
+- DREAM_OPTIONS (含_narrative), EXAM_PREP_OPTIONS (含_narrative)
+- ENCOUNTER_EVENTS (含narrative), IDLE_OPTION (无所事事)
+- REENTERABLE_TYPES, BLOCKABLE_TYPES
+- 所有选项已精简为1-3个状态变化
+- get_options_for_type(cell_type, character) → 奇遇返回[随机事件, IDLE_OPTION]
+
+## modules/stats.py —— 状态变化
+- STAT_MAX/MIN, CLASS_REL_MIN, STAT_NAMES
+- fluctuate(v, no_fluctuate=False) —— 数值波动(±2), no_fluctuate时直接返回原值
+- init_character(), clamp_stat(), apply_effects()
+- apply_class_rel_effects(), get_love_multiplier()
+- handle_confession(), check_love_zero()
+
+## modules/endings.py —— 结局
+- BAD_ENDING_MESSAGES
+- do_exam(character) —— 期末测验
+- do_gaokao(character) —— 高考结局

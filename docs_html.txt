@@ -1,0 +1,68 @@
+# game.html 结构索引 (最后更新: 2026-06-17 v2026.1.5)
+# 同步状态: Python server.py 直接serve此文件，双版完全同步
+
+## HTML结构
+- 1-65: head, meta, CSS
+- 66-80: start-screen (开始页面：标题/介绍/姓名/性别/开始按钮)
+- 81+: #app 主布局（display:none until startGame）
+- ~95-100: modal-overlay (选项弹窗)
+- ~101-105: love-popup-overlay (爱情归零弹窗)
+- ~106-110: narrative-popup-overlay (叙事弹窗)
+- ~111-115: encounter-popup-overlay (奇遇弹窗)
+- ~116-120: ending-overlay (结局弹窗)
+- 121+: <script>
+
+## JS配置
+- randInt, shuffle, fluctuate 工具函数
+- TOTAL_MAPS, GRID_SIZE_MAP(1:10,2:10,3:14,4:14,5:18,6:20), SEMESTER_NAMES
+- 所有选项已精简为1-3个状态变化，无5+情况
+- 成绩上限150，高二每步-1，高三每步-2；applyGradeDecay()
+- 状态条标注min/max，班级关系0点白线
+- 新手说明按钮+弹窗(showGuide)
+- 追梦仅1次/地图；小长假(地图1/3/5各1次，成绩门槛60/90/120)
+- 小长假: 选项节点(去度假/上补习班), _is_holiday触发enterHoliday, 上补习班成绩+8免波动
+- 响应式: @media(max-width:768px)竖排布局, getCellSize()动态格子
+- applyGradeDecay(char,mapCount,diff): 困难模式额外精神/成绩衰减
+- 困难模式成绩增量-1, 小长假门槛+10
+- 小长假: 曼哈顿距离≥2, 门槛60/100/130
+- 所有学期进度满后先进入期末备考(含高三上)
+
+## 游戏状态 (~line 230-280)
+- gameState 全局变量, pendingChoiceIndex, pendingFlucEffects, pendingNarrative, pendingEncounter
+- initCharacter(), clampStat(), getStatMin()
+
+## 地图生成 (~line 280-330)
+- bfsDistance(), generateConnections() —— 中心边只增不删，杜绝断连
+- ensureTypeDiversity(mapData,conn,centerKey) —— 跳过centerKey源和目标
+- generateMap(mapCount) —— 确保中心至少连通一个学习节点
+
+## 角色逻辑 (~line 330-360)
+- applyEffects(), applyClassRelEffects()
+- getLoveMultiplier(), handleConfession(), checkLoveZero()
+
+## 考试系统 (~line 360-380)
+- doExam(), doGaokao()
+
+## 游戏状态管理 (~line 380-430)
+- initGameState(), saveMapSnapshot(), revealConnected()
+- checkBadEnding(), updateCriticalStats()
+- transitionToNextMap(), checkProgressFull()
+
+## 游戏状态变量
+- gameState, pendingChoiceIndex, pendingFlucEffects, pendingNarrative, pendingEncounter
+- playerName (随机姓名表抽取，3次重抽), playerGender (男左女右渐变色UI)
+- nameRerolls, NAME_POOL[100个名字-内置], pickRandomName(), rerollName(), selectGender()
+- startGame() —— 从开始页面启动
+- resetGame() —— 回到开始页面，重置姓名抽取次数
+- 启动: playerName通过window.onload设置name-display
+
+## 游戏逻辑
+- enterCell(): 奇遇返回[随机事件, 无所事事(_no_fluctuate:true,免波动)]
+- previewChoice(): 奇遇显示"难以预料"文本
+- confirmChoice(): flucEff在closeModal之前保存
+- closeNarrativePopup(): 叙事弹窗关闭后渲染
+
+## 结局
+- buildSummaryHTML(): playerName + 最终状态 + 学期路径 + 迷你地图(cellMap)
+- saveMapSnapshot(): 保存cellMap(每格type/entered/blocked)用于迷你地图
+- showEnding(): 区分退学/普通结局

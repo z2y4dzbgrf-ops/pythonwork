@@ -455,7 +455,7 @@ function startGame(){
 }
 
 function initCharacter(){
-    return {成绩水平:60,爱情进展:0,体能水平:50,精神状态:50,学习状态:30,班级关系:20,romance_state:"single"};
+    return {成绩水平:60,爱情进展:0,体能水平:50,精神状态:50,学习状态:30,班级关系:40,romance_state:"single"};
 }
 function clampStat(val,statName){
     if(statName==="班级关系")return Math.max(CLASS_REL_MIN,Math.min(STAT_MAX,val));
