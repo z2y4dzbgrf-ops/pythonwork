@@ -1,2 +1,1 @@
-# schoolgame
-the first stupid game ive ever made
+# dont read me
